@@ -85,9 +85,10 @@ just check
 ## Benchmarks
 
 The benchmark script keeps comparison tools optional so `pip install ajpegli`
-only needs NumPy at runtime. See [Benchmarks](docs/benchmarks.md) and
-[DataLoader Benchmarking](docs/dataloader.md) for the report format and worker
-matrix.
+only needs NumPy at runtime. See [Benchmarks](docs/benchmarks.md),
+[Benchmark Results](docs/benchmark-results.md),
+[DataLoader Benchmarking](docs/dataloader.md), and
+[DataLoader Results](docs/dataloader-results.md).
 
 ```bash
 just bench-imread path/to/a.jpg 1000 8 RGB ajpegli,cv2,pillow
@@ -97,8 +98,9 @@ just bench-imread-dataloader path/to/a.jpg 1000 4 RGB 32
 `benchmarks/bench_imread.py` reports JSON with sequential throughput, threaded
 throughput, and optional PyTorch `DataLoader` throughput. Missing optional
 comparison packages are reported as skipped entries instead of failing the run.
-Published benchmark and DataLoader scaling reports are planned before making
-project-level speed claims against OpenCV or Pillow.
+The checked-in smoke reports are intentionally narrow; broader dataset reports
+are still required before making project-level speed claims against OpenCV or
+Pillow.
 
 For local comparison runs, install only what you want to measure in that
 environment:
