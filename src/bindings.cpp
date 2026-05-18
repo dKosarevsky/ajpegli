@@ -1,10 +1,12 @@
 #include <pybind11/pybind11.h>
 
-#include <jpeglib.h>
+#include "lib/jpegli/common.h"
 
 namespace py = pybind11;
 
-extern "C" struct jpeg_error_mgr* jpegli_std_error(struct jpeg_error_mgr* err);
+namespace ajpegli {
+void BindDecode(py::module_& m);
+}
 
 bool JpegliLinked() {
   jpeg_error_mgr err;
@@ -17,6 +19,7 @@ PYBIND11_MODULE(_ajpegli, m) {
   m.def("native_version", []() { return AJPEGLI_VERSION; });
   m.def("jpegli_commit", []() { return AJPEGLI_JPEGLI_COMMIT; });
   m.def("jpegli_linked", &JpegliLinked);
+  ajpegli::BindDecode(m);
   m.def("features", []() {
     py::dict features;
     features["uint16"] = false;

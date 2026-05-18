@@ -48,8 +48,18 @@ def encode(*_args: Any, **_kwargs: Any) -> bytes:
 
 
 def decode(*_args: Any, **_kwargs: Any) -> Any:
-    raise DecodeError("native jpegli extension is not available")
+    if _ext is None:
+        raise DecodeError("native jpegli extension is not available")
+    try:
+        return _ext.decode(*_args, **_kwargs)
+    except RuntimeError as exc:
+        raise DecodeError(str(exc)) from exc
 
 
 def info(*_args: Any, **_kwargs: Any) -> Any:
-    raise DecodeError("native jpegli extension is not available")
+    if _ext is None:
+        raise DecodeError("native jpegli extension is not available")
+    try:
+        return _ext.info(*_args, **_kwargs)
+    except RuntimeError as exc:
+        raise DecodeError(str(exc)) from exc

@@ -49,7 +49,10 @@ add_subdirectory("${AJPEGLI_JPEGLI_DIR}" EXCLUDE_FROM_ALL)
 
 pybind11_add_module(_ajpegli MODULE
   src/bindings.cpp
+  src/decode.cpp
+  src/error_mgr.cpp
 )
+target_include_directories(_ajpegli PRIVATE "${AJPEGLI_JPEGLI_DIR}")
 
 target_compile_definitions(_ajpegli PRIVATE
   AJPEGLI_VERSION="${PROJECT_VERSION}"

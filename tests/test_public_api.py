@@ -55,7 +55,7 @@ def test_public_exceptions_are_exported(name: str) -> None:
 
 
 def test_decode_invalid_input_raises_decode_error(invalid_jpeg_bytes: bytes) -> None:
-    with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
+    with pytest.raises(ajpegli.DecodeError, match="jpegli decode failed"):
         ajpegli.decode(invalid_jpeg_bytes)
 
 
@@ -94,7 +94,7 @@ def test_encode_rejects_non_contiguous_input_when_copy_forbidden(
 
 
 def test_info_invalid_input_raises_decode_error(invalid_jpeg_bytes: bytes) -> None:
-    with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
+    with pytest.raises(ajpegli.DecodeError, match="jpegli decode failed"):
         ajpegli.info(invalid_jpeg_bytes)
 
 
@@ -110,12 +110,12 @@ def test_module_cli_info_without_args_exits_cleanly() -> None:
 
 
 def test_decode_accepts_bytearray_then_reaches_native_boundary() -> None:
-    with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
+    with pytest.raises(ajpegli.DecodeError, match="jpegli decode failed"):
         ajpegli.decode(bytearray(b"not a jpeg"))
 
 
 def test_decode_accepts_memoryview_then_reaches_native_boundary() -> None:
-    with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
+    with pytest.raises(ajpegli.DecodeError, match="jpegli decode failed"):
         ajpegli.decode(memoryview(b"not a jpeg"))
 
 
@@ -144,6 +144,10 @@ def test_native_fallback_paths_are_stable(monkeypatch: pytest.MonkeyPatch) -> No
     assert native.jpegli_linked() is False
     assert native.jpegli_commit() == "unvendored"
     assert native.features()["uint16"] is False
+    with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
+        native.decode(b"not a jpeg")
+    with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
+        native.info(b"not a jpeg")
 
 
 def test_native_available_reflects_extension_state(monkeypatch: pytest.MonkeyPatch) -> None:
