@@ -5,7 +5,6 @@ import string
 import subprocess
 import sys
 from typing import Any
-from importlib.metadata import version
 
 import ajpegli
 import ajpegli._native as native
@@ -17,7 +16,7 @@ from numpy.typing import NDArray
 
 
 def test_version_and_jpegli_commit_are_public() -> None:
-    assert ajpegli.__version__ == version("ajpegli")
+    assert ajpegli.__version__ == "0.1.2"
     assert isinstance(ajpegli.__jpegli_commit__, str)
     assert len(ajpegli.__jpegli_commit__) == 40
     assert set(ajpegli.__jpegli_commit__) <= set(string.hexdigits)
