@@ -1,4 +1,12 @@
-# Wheels and publishing
+# Releasing
+
+This document is for maintainers. Users should install ajpegli from PyPI:
+
+```bash
+pip install ajpegli
+```
+
+## Wheels
 
 Wheel builds run through cibuildwheel. Pull requests smoke-test the Linux
 x86_64 wheel path; tag and manual runs build the full release matrix:
@@ -8,6 +16,25 @@ x86_64 wheel path; tag and manual runs build the full release matrix:
 - macOS x86_64
 - macOS arm64
 - Windows x64
+
+## Release checklist
+
+Before tagging a release:
+
+1. Confirm `pyproject.toml` and `python/ajpegli/_version.py` contain the same
+   version.
+2. Update `CHANGELOG.md` with user-facing changes and the vendored jpegli
+   commit.
+3. Run `just check`.
+4. Confirm the latest `main` CI run is green.
+5. Confirm the benchmark smoke artifact exists for the latest `main` run.
+6. For performance claims, update `docs/benchmark-results.md` and
+   `docs/dataloader-results.md` from a reproducible run.
+7. Create and push an annotated `v*` tag.
+8. Watch the `Wheels` workflow until `Publish to PyPI` succeeds.
+9. Verify PyPI visibility with `python -m pip index versions ajpegli`.
+
+## Trusted publishing
 
 To publish from GitHub Actions, configure PyPI Trusted Publishing for this
 repository first:
