@@ -22,7 +22,7 @@ must preserve `just check` and keep pytest coverage at or above 98%.
 
 4. `codex/core-decode`
    - `jpegli_mem_src`, header validation, `max_pixels`, NumPy allocation.
-   - RGB/L/CMYK/native mode selection for `uint8`.
+   - RGB/BGR/L/CMYK/native mode selection for `uint8`.
 
 5. `codex/core-encode`
    - `jpegli_mem_dest`, shape/stride validation, uint8 grayscale/RGB encode.
@@ -37,4 +37,3 @@ must preserve `just check` and keep pytest coverage at or above 98%.
 
 8. `codex/wheels-ci-hardening`
    - cibuildwheel matrix, sanitizer jobs, fuzz smoke, wheel dependency checks.
-

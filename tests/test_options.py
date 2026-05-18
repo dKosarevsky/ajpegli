@@ -60,6 +60,10 @@ def test_decode_options_accept_supported_dtypes(dtype: str) -> None:
     assert DecodeOptions(dtype=dtype).dtype == dtype
 
 
+def test_decode_options_accept_bgr_mode() -> None:
+    assert DecodeOptions(mode="BGR").mode == "BGR"
+
+
 @pytest.mark.parametrize("max_pixels", [0, -1])
 def test_decode_options_reject_invalid_max_pixels(max_pixels: int) -> None:
     with pytest.raises(InvalidInputError, match="max_pixels must be positive"):

@@ -84,7 +84,15 @@ def decode(
         return_metadata=return_metadata,
         endianness=endianness,
     )
-    return _native.decode(_as_bytes(data), options=options)
+    return _native.decode(
+        _as_bytes(data),
+        mode=options.mode,
+        dtype=options.dtype,
+        max_pixels=options.max_pixels,
+        max_width=options.max_width,
+        max_height=options.max_height,
+        endianness=options.endianness,
+    )
 
 
 def imread(
@@ -108,7 +116,15 @@ def imread(
         return_metadata=False,
         endianness=endianness,
     )
-    return _native.imread(os.fspath(path), options=options)
+    return _native.imread(
+        os.fspath(path),
+        mode=options.mode,
+        dtype=options.dtype,
+        max_pixels=options.max_pixels,
+        max_width=options.max_width,
+        max_height=options.max_height,
+        endianness=options.endianness,
+    )
 
 
 def info(data: object) -> JpegInfo:

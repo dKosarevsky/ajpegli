@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "ajpegli"
 version = "0.1.0"
-description = "Production-ready Python bindings for Google jpegli"
+description = "Fast JPEG-to-NumPy image loading powered by Google jpegli"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "BSD-3-Clause"

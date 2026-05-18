@@ -19,6 +19,8 @@ namespace py = pybind11;
 namespace ajpegli {
 namespace {
 
+constexpr JDIMENSION kScanlineBatchSize = 16;
+
 struct DecodeConfig {
   std::string mode;
   std::string dtype;
@@ -49,30 +51,27 @@ class FileReadError : public std::runtime_error {
   std::string path_;
 };
 
-std::string GetStringAttr(py::object object, const char* name) {
-  return py::str(py::getattr(object, name));
-}
-
-long GetLongAttr(py::object object, const char* name) {
-  return py::cast<long>(py::getattr(object, name));
-}
-
-unsigned long GetPositiveLimitAttr(py::object object, const char* name) {
-  const long value = GetLongAttr(object, name);
+unsigned long PositiveLimit(long value, const char* name) {
   if (value <= 0) {
     throw std::runtime_error(std::string(name) + " must be positive");
   }
   return static_cast<unsigned long>(value);
 }
 
-DecodeConfig GetDecodeConfig(py::object options) {
+DecodeConfig MakeDecodeConfig(
+    const std::string& mode,
+    const std::string& dtype,
+    long max_pixels,
+    long max_width,
+    long max_height,
+    const std::string& endianness) {
   return DecodeConfig{
-      GetStringAttr(options, "mode"),
-      GetStringAttr(options, "dtype"),
-      GetStringAttr(options, "endianness"),
-      GetPositiveLimitAttr(options, "max_width"),
-      GetPositiveLimitAttr(options, "max_height"),
-      GetPositiveLimitAttr(options, "max_pixels"),
+      mode,
+      dtype,
+      endianness,
+      PositiveLimit(max_width, "max_width"),
+      PositiveLimit(max_height, "max_height"),
+      PositiveLimit(max_pixels, "max_pixels"),
   };
 }
 
@@ -109,6 +108,7 @@ std::vector<uint8_t> ReadFile(const std::string& path) {
 
 J_COLOR_SPACE OutputColorSpace(const std::string& mode) {
   if (mode == "RGB") return JCS_RGB;
+  if (mode == "BGR") return JCS_EXT_BGR;
   if (mode == "L") return JCS_GRAYSCALE;
   if (mode == "CMYK") return JCS_CMYK;
   if (mode == "native") return JCS_UNKNOWN;
@@ -167,8 +167,7 @@ void ValidateInputSize(size_t size) {
   }
 }
 
-py::array DecodeBuffer(const uint8_t* data, size_t size, py::object options) {
-  const DecodeConfig config = GetDecodeConfig(options);
+py::array DecodeBuffer(const uint8_t* data, size_t size, const DecodeConfig& config) {
   ValidateOptions(config);
   ValidateInputSize(size);
   jpeg_decompress_struct cinfo{};
@@ -235,8 +234,14 @@ py::array DecodeBuffer(const uint8_t* data, size_t size, py::object options) {
 
   ReleaseGil(gil.get());
   while (cinfo.output_scanline < cinfo.output_height) {
-    JSAMPROW row = pixels + static_cast<size_t>(cinfo.output_scanline) * stride;
-    jpegli_read_scanlines(&cinfo, &row, 1);
+    JSAMPROW rows[kScanlineBatchSize];
+    const JDIMENSION remaining = cinfo.output_height - cinfo.output_scanline;
+    const JDIMENSION row_count =
+        remaining < kScanlineBatchSize ? remaining : kScanlineBatchSize;
+    for (JDIMENSION i = 0; i < row_count; ++i) {
+      rows[i] = pixels + static_cast<size_t>(cinfo.output_scanline + i) * stride;
+    }
+    jpegli_read_scanlines(&cinfo, rows, row_count);
   }
   jpegli_finish_decompress(&cinfo);
   jpegli_destroy_decompress(&cinfo);
@@ -265,12 +270,30 @@ void ProbeJpegHeader(py::bytes data) {
   jpegli_destroy_decompress(&cinfo);
 }
 
-py::array Decode(py::bytes data, py::object options) {
+py::array Decode(
+    py::bytes data,
+    const std::string& mode,
+    const std::string& dtype,
+    long max_pixels,
+    long max_width,
+    long max_height,
+    const std::string& endianness) {
+  const DecodeConfig config =
+      MakeDecodeConfig(mode, dtype, max_pixels, max_width, max_height, endianness);
   const BytesView input = GetBytesView(data);
-  return DecodeBuffer(input.data, input.size, options);
+  return DecodeBuffer(input.data, input.size, config);
 }
 
-py::array Imread(py::str path, py::object options) {
+py::array Imread(
+    py::str path,
+    const std::string& mode,
+    const std::string& dtype,
+    long max_pixels,
+    long max_width,
+    long max_height,
+    const std::string& endianness) {
+  const DecodeConfig config =
+      MakeDecodeConfig(mode, dtype, max_pixels, max_width, max_height, endianness);
   const std::string file_path = path;
   std::vector<uint8_t> input;
   try {
@@ -280,7 +303,7 @@ py::array Imread(py::str path, py::object options) {
     PyErr_SetString(PyExc_FileNotFoundError, exc.what());
     throw py::error_already_set();
   }
-  return DecodeBuffer(input.data(), input.size(), options);
+  return DecodeBuffer(input.data(), input.size(), config);
 }
 
 py::object Info(py::bytes data) {
@@ -291,8 +314,28 @@ py::object Info(py::bytes data) {
 }  // namespace
 
 void BindDecode(py::module_& m) {
-  m.def("decode", &Decode, py::arg("data"), py::kw_only(), py::arg("options"));
-  m.def("imread", &Imread, py::arg("path"), py::kw_only(), py::arg("options"));
+  m.def(
+      "decode",
+      &Decode,
+      py::arg("data"),
+      py::kw_only(),
+      py::arg("mode"),
+      py::arg("dtype"),
+      py::arg("max_pixels"),
+      py::arg("max_width"),
+      py::arg("max_height"),
+      py::arg("endianness"));
+  m.def(
+      "imread",
+      &Imread,
+      py::arg("path"),
+      py::kw_only(),
+      py::arg("mode"),
+      py::arg("dtype"),
+      py::arg("max_pixels"),
+      py::arg("max_width"),
+      py::arg("max_height"),
+      py::arg("endianness"));
   m.def("info", &Info, py::arg("data"));
 }
 

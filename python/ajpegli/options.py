@@ -14,14 +14,14 @@ _MAX_PROGRESSIVE_LEVEL = 3
 _SUBSAMPLING_VALUES = {"444", "422", "420", "440", "gray"}
 _ENCODE_MODE_VALUES = {"RGB", "L", "CMYK"}
 _DTYPE_VALUES = {"uint8", "uint16", "float32", "float16"}
-_DECODE_MODE_VALUES = {"RGB", "L", "CMYK", "native"}
+_DECODE_MODE_VALUES = {"RGB", "BGR", "L", "CMYK", "native"}
 _ENDIANNESS_VALUES = {"native", "little", "big"}
 
 EncodeMode = Literal["RGB", "L", "CMYK"]
 EncodeDtype = Literal["uint8", "uint16", "float32", "float16"]
 Subsampling = Literal["444", "422", "420", "440", "gray"]
 AlphaPolicy = Literal["error", "drop"]
-DecodeMode = Literal["RGB", "L", "CMYK", "native"]
+DecodeMode = Literal["RGB", "BGR", "L", "CMYK", "native"]
 DecodeDtype = Literal["uint8", "uint16", "float32", "float16"]
 Endianness = Literal["native", "little", "big"]
 

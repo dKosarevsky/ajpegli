@@ -185,19 +185,65 @@ def test_public_exception_hierarchy_accepts_value_error() -> None:
 def test_decode_options_are_passed_to_native(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
-    def fake_decode(data: bytes, *, options: ajpegli.DecodeOptions) -> NDArray[np.uint8]:
-        captured["data"] = data
-        captured["options"] = options
+    def fake_decode(data: bytes, **kwargs: Any) -> NDArray[np.uint8]:
+        captured["args"] = (data, kwargs)
         return np.zeros((1, 1, 3), dtype=np.uint8)
 
     monkeypatch.setattr(api._native, "decode", fake_decode)
 
-    result = ajpegli.decode(b"jpeg", dtype="uint16", endianness="little")
+    result = ajpegli.decode(
+        b"jpeg",
+        mode="BGR",
+        dtype="uint16",
+        max_pixels=123,
+        max_width=45,
+        max_height=67,
+        endianness="little",
+    )
 
     assert result.shape == (1, 1, 3)
-    assert captured["data"] == b"jpeg"
-    assert captured["options"].dtype == "uint16"
-    assert captured["options"].endianness == "little"
+    data, kwargs = captured["args"]
+    assert data == b"jpeg"
+    assert kwargs == {
+        "mode": "BGR",
+        "dtype": "uint16",
+        "max_pixels": 123,
+        "max_width": 45,
+        "max_height": 67,
+        "endianness": "little",
+    }
+
+
+def test_imread_options_are_passed_to_native(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_imread(path: str, **kwargs: Any) -> NDArray[np.uint8]:
+        captured["args"] = (path, kwargs)
+        return np.zeros((1, 1, 3), dtype=np.uint8)
+
+    monkeypatch.setattr(api._native, "imread", fake_imread)
+
+    result = ajpegli.imread(
+        "image.jpg",
+        mode="BGR",
+        dtype="uint8",
+        max_pixels=123,
+        max_width=45,
+        max_height=67,
+        endianness="native",
+    )
+
+    assert result.shape == (1, 1, 3)
+    path, kwargs = captured["args"]
+    assert path == "image.jpg"
+    assert kwargs == {
+        "mode": "BGR",
+        "dtype": "uint8",
+        "max_pixels": 123,
+        "max_width": 45,
+        "max_height": 67,
+        "endianness": "native",
+    }
 
 
 def test_info_accepts_bytearray(monkeypatch: pytest.MonkeyPatch) -> None:
