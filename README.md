@@ -19,6 +19,7 @@ git submodule update --init --recursive
 uv sync --extra dev
 just check
 just build
+just bench-imread
 ```
 
 `third_party/jpegli` is pinned as a submodule. The pinned commit is exposed at
