@@ -29,7 +29,25 @@ just bench-imread
 `third_party/jpegli` is pinned as a submodule. The pinned commit is exposed at
 runtime through `ajpegli.__jpegli_commit__` and `ajpegli.jpegli_commit()`.
 
+Release and publishing instructions live in [releasing.md](docs/releasing.md).
+
+## Installation
+
+Install from PyPI:
+
+```bash
+pip install ajpegli
+```
+
+With uv:
+
+```bash
+uv add ajpegli
+```
+
 ## Quickstart
+
+ajpegli ships prebuilt wheels for common Linux, macOS, and Windows CPython builds. NumPy is the only runtime dependency.
 
 ```python
 import ajpegli
@@ -53,6 +71,18 @@ benchmark tools and are not required by `pip install ajpegli`.
 
 `encode()` and full `info()` metadata output are still planned API surface, not
 the release focus yet.
+
+The API is cv2.imread-like, but not a drop-in OpenCV replacement: color images are returned as RGB by default. Use
+mode="BGR" for OpenCV-style pipelines.
+
+For local source builds, clone with submodules:
+
+```bash
+git clone --recursive https://github.com/dKosarevsky/ajpegli.git
+cd ajpegli
+uv sync --extra dev
+just check
+```
 
 ## Benchmarks
 
@@ -79,29 +109,3 @@ environment:
 uv pip install opencv-python-headless pillow
 uv pip install torch  # only for --include-dataloader
 ```
-
-## Wheels and publishing
-
-Wheel builds run through cibuildwheel. Pull requests smoke-test the Linux
-x86_64 wheel path; tag and manual runs build the full release matrix:
-
-- manylinux x86_64
-- manylinux aarch64
-- macOS x86_64
-- macOS arm64
-- Windows x64
-
-To publish from GitHub Actions, configure PyPI Trusted Publishing for this
-repository first:
-
-1. On TestPyPI, create or claim the `ajpegli` project and add a trusted
-   publisher for repository `dKosarevsky/ajpegli`, workflow
-   `.github/workflows/wheels.yml`, environment `testpypi`.
-2. In GitHub repository settings, create a `testpypi` environment.
-3. Run the `Wheels` workflow manually with `publish=testpypi`.
-4. On PyPI, add the same trusted publisher with environment `pypi`.
-5. In GitHub repository settings, create a protected `pypi` environment.
-6. Publish a real release by pushing a `v*` tag, or run the `Wheels` workflow
-   manually with `publish=pypi`.
-
-No long-lived PyPI token is required for that flow.
