@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import numpy as np
@@ -84,6 +85,30 @@ def decode(
         endianness=endianness,
     )
     return _native.decode(_as_bytes(data), options=options)
+
+
+def imread(
+    path: str | os.PathLike[str],
+    *,
+    mode: str = "RGB",
+    dtype: str = "uint8",
+    max_pixels: int = 256_000_000,
+    max_width: int = 65_535,
+    max_height: int = 65_535,
+    max_metadata_bytes: int = 64 * 1024 * 1024,
+    endianness: str = "native",
+) -> NDArray[Any]:
+    options = DecodeOptions(
+        mode=mode,
+        dtype=dtype,
+        max_pixels=max_pixels,
+        max_width=max_width,
+        max_height=max_height,
+        max_metadata_bytes=max_metadata_bytes,
+        return_metadata=False,
+        endianness=endianness,
+    )
+    return _native.imread(os.fspath(path), options=options)
 
 
 def info(data: object) -> JpegInfo:

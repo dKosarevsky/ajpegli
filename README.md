@@ -24,3 +24,15 @@ just build
 `third_party/jpegli` is pinned as a submodule. The pinned commit is exposed at
 runtime through `ajpegli.__jpegli_commit__` and `ajpegli.jpegli_commit()`.
 
+## Quickstart
+
+```python
+import ajpegli
+
+image = ajpegli.imread("image.jpg")
+assert image.dtype == "uint8"
+assert image.ndim == 3
+```
+
+`imread()` reads the file in the native extension and returns a NumPy array.
+The first decode slice supports `uint8` RGB and grayscale output.
