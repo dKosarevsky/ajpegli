@@ -121,3 +121,49 @@ jobs:
 
       - name: Run runtime tests
         run: uv run pytest -q --no-cov
+
+  benchmark-smoke:
+    name: Benchmark smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpng-dev pkg-config zlib1g-dev
+
+      - name: Install Python dependencies
+        run: uv sync --extra dev
+
+      - name: Run imread benchmark smoke
+        run: |
+          mkdir -p benchmark-results
+          uv run python benchmarks/bench_imread.py \
+            third_party/jpegli/testdata/jxl/jpeg_reconstruction/1x1_exif_xmp.jpg \
+            --mode RGB \
+            --iterations 20 \
+            --workers 2 \
+            --codecs ajpegli \
+            > benchmark-results/imread-smoke.json
+
+      - name: Upload benchmark smoke artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-imread-smoke
+          path: benchmark-results/imread-smoke.json
+          if-no-files-found: error
