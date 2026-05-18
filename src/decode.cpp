@@ -33,6 +33,11 @@ struct GilState {
   bool released = false;
 };
 
+struct BytesView {
+  const uint8_t* data;
+  size_t size;
+};
+
 class FileReadError : public std::runtime_error {
  public:
   FileReadError(std::string path, std::string message)
@@ -43,10 +48,6 @@ class FileReadError : public std::runtime_error {
  private:
   std::string path_;
 };
-
-std::string ToString(py::bytes data) {
-  return data;
-}
 
 std::string GetStringAttr(py::object object, const char* name) {
   return py::str(py::getattr(object, name));
@@ -72,6 +73,18 @@ DecodeConfig GetDecodeConfig(py::object options) {
       GetPositiveLimitAttr(options, "max_width"),
       GetPositiveLimitAttr(options, "max_height"),
       GetPositiveLimitAttr(options, "max_pixels"),
+  };
+}
+
+BytesView GetBytesView(py::bytes data) {
+  char* buffer = nullptr;
+  Py_ssize_t size = 0;
+  if (PyBytes_AsStringAndSize(data.ptr(), &buffer, &size) != 0) {
+    throw py::error_already_set();
+  }
+  return BytesView{
+      reinterpret_cast<const uint8_t*>(buffer),
+      static_cast<size_t>(size),
   };
 }
 
@@ -232,7 +245,8 @@ py::array DecodeBuffer(const uint8_t* data, size_t size, py::object options) {
 }
 
 void ProbeJpegHeader(py::bytes data) {
-  const std::string input = ToString(data);
+  const BytesView input = GetBytesView(data);
+  ValidateInputSize(input.size);
   jpeg_decompress_struct cinfo{};
   ErrorManager err{};
   cinfo.err = SetupErrorManager(&err);
@@ -245,15 +259,15 @@ void ProbeJpegHeader(py::bytes data) {
   jpegli_create_decompress(&cinfo);
   jpegli_mem_src(
       &cinfo,
-      reinterpret_cast<const unsigned char*>(input.data()),
-      static_cast<unsigned long>(input.size()));
+      reinterpret_cast<const unsigned char*>(input.data),
+      static_cast<unsigned long>(input.size));
   jpegli_read_header(&cinfo, TRUE);
   jpegli_destroy_decompress(&cinfo);
 }
 
 py::array Decode(py::bytes data, py::object options) {
-  const std::string input = ToString(data);
-  return DecodeBuffer(reinterpret_cast<const uint8_t*>(input.data()), input.size(), options);
+  const BytesView input = GetBytesView(data);
+  return DecodeBuffer(input.data, input.size, options);
 }
 
 py::array Imread(py::str path, py::object options) {
