@@ -5,6 +5,10 @@ NumPy array. The native read/decode path releases the GIL, but DataLoader
 throughput still depends on storage, process startup, batch size, and image
 sizes. Measure it on the target machine before making speed claims.
 
+Initial smoke numbers are published in
+[DataLoader Results](dataloader-results.md). They use one vendored JPEG and are
+only a regression baseline.
+
 ## Dataset Pattern
 
 ```python
@@ -46,6 +50,7 @@ uv run python benchmarks/bench_imread.py path/to/medium/*.jpg \
   --mode RGB \
   --iterations 2000 \
   --workers 8 \
+  --dataloader-workers 8 \
   --codecs ajpegli \
   --include-dataloader \
   --batch-size 64 \

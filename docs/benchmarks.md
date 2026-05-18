@@ -4,6 +4,10 @@
 reproducible run. The benchmark runner emits JSON so results can be checked into
 release notes without depending on optional packages at runtime.
 
+Initial smoke numbers are published in
+[Benchmark Results](benchmark-results.md). They are intentionally narrow and
+should not be treated as a full performance claim.
+
 ## Setup
 
 Install only the comparison tools you want to measure:

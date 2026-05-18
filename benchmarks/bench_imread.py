@@ -51,6 +51,13 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
+def _non_negative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("value must be non-negative")
+    return parsed
+
+
 def _parse_codecs(value: str) -> list[str]:
     codecs = [item.strip().lower() for item in value.split(",")]
     if not codecs or any(not item for item in codecs):
@@ -257,6 +264,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include-dataloader", action="store_true")
     parser.add_argument("--batch-size", type=_positive_int, default=32)
     parser.add_argument(
+        "--dataloader-workers",
+        type=_non_negative_int,
+        default=None,
+        help="PyTorch DataLoader num_workers. Defaults to --workers.",
+    )
+    parser.add_argument(
         "--multiprocessing-context",
         choices=["fork", "spawn", "forkserver"],
         default=None,
@@ -293,11 +306,14 @@ def main() -> int:
         "codecs": results,
     }
     if args.include_dataloader:
+        dataloader_workers = args.workers
+        if args.dataloader_workers is not None:
+            dataloader_workers = args.dataloader_workers
         output["torch_dataloader"] = _bench_torch_dataloader(
             paths,
             mode=args.mode,
             iterations=args.iterations,
-            workers=args.workers,
+            workers=dataloader_workers,
             batch_size=args.batch_size,
             multiprocessing_context=args.multiprocessing_context,
         )

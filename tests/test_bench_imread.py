@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from benchmarks.bench_imread import _bench_reader, _parse_codecs, _positive_int, _throughput_result
+from benchmarks.bench_imread import (
+    _bench_reader,
+    _non_negative_int,
+    _parse_codecs,
+    _positive_int,
+    _throughput_result,
+)
 
 
 def test_parse_codecs_trims_and_rejects_empty_values() -> None:
@@ -47,3 +53,11 @@ def test_positive_int_rejects_non_positive_values() -> None:
 
     with pytest.raises(argparse.ArgumentTypeError):
         _positive_int("0")
+
+
+def test_non_negative_int_accepts_zero_for_dataloader_workers() -> None:
+    assert _non_negative_int("0") == 0
+    assert _non_negative_int("3") == 3
+
+    with pytest.raises(argparse.ArgumentTypeError):
+        _non_negative_int("-1")
