@@ -67,7 +67,6 @@ build = [
   "cp313-*",
 ]
 skip = [
-  "pp*",
   "*-win32",
   "*-musllinux_*",
 ]
