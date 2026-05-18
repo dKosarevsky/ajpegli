@@ -45,3 +45,25 @@ workers do not serialize on Python while the native codec is running.
 
 `encode()` and full `info()` metadata output are still planned API surface, not
 the release focus yet.
+
+## Benchmarks
+
+The benchmark script keeps comparison tools optional so `pip install ajpegli`
+only needs NumPy at runtime.
+
+```bash
+just bench-imread path/to/a.jpg 1000 8 RGB ajpegli,cv2,pillow
+just bench-imread-dataloader path/to/a.jpg 1000 4 RGB 32
+```
+
+`benchmarks/bench_imread.py` reports JSON with sequential throughput, threaded
+throughput, and optional PyTorch `DataLoader` throughput. Missing optional
+comparison packages are reported as skipped entries instead of failing the run.
+
+For local comparison runs, install only what you want to measure in that
+environment:
+
+```bash
+uv pip install opencv-python-headless pillow
+uv pip install torch  # only for --include-dataloader
+```
