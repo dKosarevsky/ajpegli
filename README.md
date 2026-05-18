@@ -10,7 +10,9 @@ Fast JPEG-to-NumPy image loading powered by Google jpegli.
 
 `ajpegli` is a dependency-light JPEG loader for Python: pass a file path, get a
 NumPy array. Decoding is powered by Google jpegli and built for high-throughput
-data pipelines.
+data pipelines. The API is `cv2.imread`-like, but it is not a drop-in OpenCV
+replacement: color images are returned as RGB by default. Pass `mode="BGR"` for
+OpenCV-style pipelines.
 
 ## Development
 
@@ -36,6 +38,7 @@ image = ajpegli.imread("image.jpg")
 assert image.dtype == "uint8"
 assert image.ndim == 3
 
+rgb = ajpegli.imread("image.jpg", mode="RGB")  # default
 bgr = ajpegli.imread("image.jpg", mode="BGR")  # for OpenCV-style pipelines
 gray = ajpegli.imread("image.jpg", mode="L")
 ```
@@ -44,6 +47,9 @@ gray = ajpegli.imread("image.jpg", mode="L")
 The first decode slice supports `uint8` RGB, BGR, and grayscale output. File I/O
 and jpegli decode work release the GIL so threaded callers and DataLoader
 workers do not serialize on Python while the native codec is running.
+
+NumPy is the only runtime dependency. OpenCV, Pillow, and PyTorch are optional
+benchmark tools and are not required by `pip install ajpegli`.
 
 `encode()` and full `info()` metadata output are still planned API surface, not
 the release focus yet.
@@ -61,6 +67,8 @@ just bench-imread-dataloader path/to/a.jpg 1000 4 RGB 32
 `benchmarks/bench_imread.py` reports JSON with sequential throughput, threaded
 throughput, and optional PyTorch `DataLoader` throughput. Missing optional
 comparison packages are reported as skipped entries instead of failing the run.
+Published benchmark and DataLoader scaling reports are planned before making
+project-level speed claims against OpenCV or Pillow.
 
 For local comparison runs, install only what you want to measure in that
 environment:
