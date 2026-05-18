@@ -26,6 +26,10 @@ def native_available() -> bool:
     return _ext is not None
 
 
+def jpegli_linked() -> bool:
+    return _ext is not None and bool(getattr(_ext, "jpegli_linked", lambda: False)())
+
+
 def jpegli_commit() -> str:
     if _ext is None:
         return "unvendored"

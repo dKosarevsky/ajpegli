@@ -10,3 +10,17 @@ The first implementation slice establishes packaging, tests, and public API
 contracts. Full jpegli encode/decode support is intentionally staged behind the
 native extension boundary.
 
+## Development
+
+Clone with submodules before building native wheels:
+
+```bash
+git submodule update --init --recursive
+uv sync --extra dev
+just check
+just build
+```
+
+`third_party/jpegli` is pinned as a submodule. The pinned commit is exposed at
+runtime through `ajpegli.__jpegli_commit__` and `ajpegli.jpegli_commit()`.
+

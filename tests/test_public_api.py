@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import runpy
+import string
 import subprocess
 import sys
 from typing import Any
@@ -17,7 +18,8 @@ from numpy.typing import NDArray
 def test_version_and_jpegli_commit_are_public() -> None:
     assert ajpegli.__version__ == "0.1.0"
     assert isinstance(ajpegli.__jpegli_commit__, str)
-    assert ajpegli.__jpegli_commit__
+    assert len(ajpegli.__jpegli_commit__) == 40
+    assert set(ajpegli.__jpegli_commit__) <= set(string.hexdigits)
     assert ajpegli.jpegli_commit() == ajpegli.__jpegli_commit__
 
 
@@ -139,6 +141,7 @@ def test_native_fallback_paths_are_stable(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(native, "_ext", None)
 
     assert native.native_available() is False
+    assert native.jpegli_linked() is False
     assert native.jpegli_commit() == "unvendored"
     assert native.features()["uint16"] is False
 
@@ -147,6 +150,10 @@ def test_native_available_reflects_extension_state(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(native, "_ext", object())
 
     assert native.native_available() is True
+
+
+def test_native_extension_is_linked_to_jpegli() -> None:
+    assert native.jpegli_linked() is True
 
 
 def test_cli_main_prints_version(capsys: pytest.CaptureFixture[str]) -> None:

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(ajpegli VERSION 0.1.0 LANGUAGES CXX)
+project(ajpegli VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,14 +9,58 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
+set(AJPEGLI_JPEGLI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/jpegli")
+set(AJPEGLI_JPEGLI_COMMIT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/jpegli.commit")
+
+execute_process(
+  COMMAND git -C "${AJPEGLI_JPEGLI_DIR}" rev-parse HEAD
+  OUTPUT_VARIABLE AJPEGLI_JPEGLI_COMMIT
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+if(NOT AJPEGLI_JPEGLI_COMMIT AND EXISTS "${AJPEGLI_JPEGLI_COMMIT_FILE}")
+  file(READ "${AJPEGLI_JPEGLI_COMMIT_FILE}" AJPEGLI_JPEGLI_COMMIT)
+  string(STRIP "${AJPEGLI_JPEGLI_COMMIT}" AJPEGLI_JPEGLI_COMMIT)
+endif()
+if(NOT AJPEGLI_JPEGLI_COMMIT)
+  message(FATAL_ERROR "Unable to determine pinned jpegli commit")
+endif()
+
+if(NOT EXISTS "${AJPEGLI_JPEGLI_DIR}/CMakeLists.txt")
+  message(FATAL_ERROR
+    "third_party/jpegli is missing. Run: git submodule update --init --recursive")
+endif()
+
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_FUZZERS OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_DEVTOOLS OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_TOOLS OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_JPEGLI_LIBJPEG OFF CACHE BOOL "" FORCE)
+set(JPEGLI_INSTALL_JPEGLI_LIBJPEG OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_DOXYGEN OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_MANPAGES OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_BENCHMARK OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_JNI OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_SJPEG OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_OPENEXR OFF CACHE BOOL "" FORCE)
+set(JPEGLI_ENABLE_TCMALLOC OFF CACHE BOOL "" FORCE)
+add_subdirectory("${AJPEGLI_JPEGLI_DIR}" EXCLUDE_FROM_ALL)
+
 pybind11_add_module(_ajpegli MODULE
   src/bindings.cpp
 )
 
 target_compile_definitions(_ajpegli PRIVATE
   AJPEGLI_VERSION="${PROJECT_VERSION}"
-  AJPEGLI_JPEGLI_COMMIT="unvendored"
+  AJPEGLI_JPEGLI_COMMIT="${AJPEGLI_JPEGLI_COMMIT}"
 )
+target_link_libraries(_ajpegli PRIVATE jpegli-static)
+if(APPLE)
+  target_link_options(_ajpegli PRIVATE "LINKER:-exported_symbol,_PyInit__ajpegli")
+elseif(UNIX)
+  target_link_options(_ajpegli PRIVATE "LINKER:--exclude-libs,ALL")
+endif()
 
 set_target_properties(_ajpegli PROPERTIES
   CXX_VISIBILITY_PRESET hidden
@@ -24,4 +68,3 @@ set_target_properties(_ajpegli PROPERTIES
 )
 
 install(TARGETS _ajpegli DESTINATION ajpegli)
-
