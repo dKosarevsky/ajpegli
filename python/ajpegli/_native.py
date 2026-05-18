@@ -56,6 +56,15 @@ def decode(*_args: Any, **_kwargs: Any) -> Any:
         raise DecodeError(str(exc)) from exc
 
 
+def imread(*_args: Any, **_kwargs: Any) -> Any:
+    if _ext is None:
+        raise DecodeError("native jpegli extension is not available")
+    try:
+        return _ext.imread(*_args, **_kwargs)
+    except RuntimeError as exc:
+        raise DecodeError(str(exc)) from exc
+
+
 def info(*_args: Any, **_kwargs: Any) -> Any:
     if _ext is None:
         raise DecodeError("native jpegli extension is not available")

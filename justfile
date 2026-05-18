@@ -26,8 +26,10 @@ typecheck:
 build:
     {{ UV }} run python -m build
 
+bench-imread file="third_party/jpegli/testdata/jxl/jpeg_reconstruction/1x1_exif_xmp.jpg" iterations="1000" workers="8":
+    {{ UV }} run python benchmarks/bench_imread.py {{ file }} --iterations {{ iterations }} --workers {{ workers }}
+
 check:
     just lint
     just typecheck
     just test
-

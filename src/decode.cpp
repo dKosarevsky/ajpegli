@@ -1,8 +1,15 @@
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
 #include <csetjmp>
+#include <cstdint>
+#include <fstream>
+#include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "error_mgr.h"
 #include "lib/jpegli/decode.h"
@@ -12,12 +19,234 @@ namespace py = pybind11;
 namespace ajpegli {
 namespace {
 
-std::string ToString(py::bytes data) {
-  return data;
+struct DecodeConfig {
+  std::string mode;
+  std::string dtype;
+  std::string endianness;
+  unsigned long max_width;
+  unsigned long max_height;
+  unsigned long max_pixels;
+};
+
+struct GilState {
+  PyThreadState* thread_state = nullptr;
+  bool released = false;
+};
+
+struct BytesView {
+  const uint8_t* data;
+  size_t size;
+};
+
+class FileReadError : public std::runtime_error {
+ public:
+  FileReadError(std::string path, std::string message)
+      : std::runtime_error(std::move(message)), path_(std::move(path)) {}
+
+  const std::string& path() const { return path_; }
+
+ private:
+  std::string path_;
+};
+
+std::string GetStringAttr(py::object object, const char* name) {
+  return py::str(py::getattr(object, name));
+}
+
+long GetLongAttr(py::object object, const char* name) {
+  return py::cast<long>(py::getattr(object, name));
+}
+
+unsigned long GetPositiveLimitAttr(py::object object, const char* name) {
+  const long value = GetLongAttr(object, name);
+  if (value <= 0) {
+    throw std::runtime_error(std::string(name) + " must be positive");
+  }
+  return static_cast<unsigned long>(value);
+}
+
+DecodeConfig GetDecodeConfig(py::object options) {
+  return DecodeConfig{
+      GetStringAttr(options, "mode"),
+      GetStringAttr(options, "dtype"),
+      GetStringAttr(options, "endianness"),
+      GetPositiveLimitAttr(options, "max_width"),
+      GetPositiveLimitAttr(options, "max_height"),
+      GetPositiveLimitAttr(options, "max_pixels"),
+  };
+}
+
+BytesView GetBytesView(py::bytes data) {
+  char* buffer = nullptr;
+  Py_ssize_t size = 0;
+  if (PyBytes_AsStringAndSize(data.ptr(), &buffer, &size) != 0) {
+    throw py::error_already_set();
+  }
+  return BytesView{
+      reinterpret_cast<const uint8_t*>(buffer),
+      static_cast<size_t>(size),
+  };
+}
+
+std::vector<uint8_t> ReadFile(const std::string& path) {
+  std::ifstream file(path, std::ios::binary | std::ios::ate);
+  if (!file) {
+    throw FileReadError(path, "failed to open JPEG file: " + path);
+  }
+
+  const std::streamsize size = file.tellg();
+  if (size < 0) {
+    throw FileReadError(path, "failed to determine JPEG file size: " + path);
+  }
+  file.seekg(0, std::ios::beg);
+
+  std::vector<uint8_t> input(static_cast<size_t>(size));
+  if (size > 0 && !file.read(reinterpret_cast<char*>(input.data()), size)) {
+    throw FileReadError(path, "failed to read JPEG file: " + path);
+  }
+  return input;
+}
+
+J_COLOR_SPACE OutputColorSpace(const std::string& mode) {
+  if (mode == "RGB") return JCS_RGB;
+  if (mode == "L") return JCS_GRAYSCALE;
+  if (mode == "CMYK") return JCS_CMYK;
+  if (mode == "native") return JCS_UNKNOWN;
+  throw std::runtime_error("unsupported decode mode: " + mode);
+}
+
+void ValidateOptions(const DecodeConfig& config) {
+  if (config.dtype != "uint8") {
+    throw std::runtime_error("only uint8 decode is implemented");
+  }
+  if (config.endianness != "native") {
+    throw std::runtime_error("only native-endian uint8 decode is implemented");
+  }
+}
+
+void ValidateDimensions(jpeg_decompress_struct* cinfo, const DecodeConfig& config) {
+  const auto width = static_cast<unsigned long>(cinfo->image_width);
+  const auto height = static_cast<unsigned long>(cinfo->image_height);
+
+  if (width == 0 || height == 0) {
+    throw std::runtime_error("JPEG dimensions must be positive");
+  }
+  if (width > config.max_width || height > config.max_height) {
+    throw std::runtime_error("JPEG dimensions exceed configured limits");
+  }
+  if (height > std::numeric_limits<unsigned long>::max() / width ||
+      width * height > config.max_pixels) {
+    throw std::runtime_error("JPEG pixel count exceeds max_pixels");
+  }
+}
+
+void ReleaseGil(GilState* gil) {
+  if (!gil->released) {
+    gil->thread_state = PyEval_SaveThread();
+    gil->released = true;
+  }
+}
+
+void RestoreGil(GilState* gil) {
+  if (gil->released) {
+    PyEval_RestoreThread(gil->thread_state);
+    gil->thread_state = nullptr;
+    gil->released = false;
+  }
+}
+
+void ThrowDecodeError(jpeg_decompress_struct* cinfo, ErrorManager* err, GilState* gil) {
+  RestoreGil(gil);
+  jpegli_destroy_decompress(cinfo);
+  throw std::runtime_error("jpegli decode failed: " + err->message);
+}
+
+void ValidateInputSize(size_t size) {
+  if (size > std::numeric_limits<unsigned long>::max()) {
+    throw std::runtime_error("JPEG input is too large");
+  }
+}
+
+py::array DecodeBuffer(const uint8_t* data, size_t size, py::object options) {
+  const DecodeConfig config = GetDecodeConfig(options);
+  ValidateOptions(config);
+  ValidateInputSize(size);
+  jpeg_decompress_struct cinfo{};
+  ErrorManager err{};
+  cinfo.err = SetupErrorManager(&err);
+  auto gil = std::make_unique<GilState>();
+
+  if (setjmp(err.jump_buffer)) {
+    ThrowDecodeError(&cinfo, &err, gil.get());
+  }
+
+  ReleaseGil(gil.get());
+  jpegli_create_decompress(&cinfo);
+  jpegli_mem_src(
+      &cinfo,
+      reinterpret_cast<const unsigned char*>(data),
+      static_cast<unsigned long>(size));
+  jpegli_read_header(&cinfo, TRUE);
+  RestoreGil(gil.get());
+
+  J_COLOR_SPACE color_space = JCS_UNKNOWN;
+  try {
+    ValidateDimensions(&cinfo, config);
+    color_space = OutputColorSpace(config.mode);
+  } catch (...) {
+    jpegli_destroy_decompress(&cinfo);
+    throw;
+  }
+  if (color_space != JCS_UNKNOWN) {
+    cinfo.out_color_space = color_space;
+  }
+
+  if (setjmp(err.jump_buffer)) {
+    ThrowDecodeError(&cinfo, &err, gil.get());
+  }
+
+  ReleaseGil(gil.get());
+  jpegli_set_output_format(&cinfo, JPEGLI_TYPE_UINT8, JPEGLI_NATIVE_ENDIAN);
+  jpegli_start_decompress(&cinfo);
+  RestoreGil(gil.get());
+
+  const auto height = static_cast<py::ssize_t>(cinfo.output_height);
+  const auto width = static_cast<py::ssize_t>(cinfo.output_width);
+  const auto components = static_cast<py::ssize_t>(cinfo.out_color_components);
+  if (components <= 0) {
+    jpegli_destroy_decompress(&cinfo);
+    throw std::runtime_error("jpegli produced invalid component count");
+  }
+
+  py::array_t<uint8_t> output;
+  try {
+    output = components == 1 ? py::array_t<uint8_t>({height, width})
+                             : py::array_t<uint8_t>({height, width, components});
+  } catch (...) {
+    jpegli_destroy_decompress(&cinfo);
+    throw;
+  }
+  auto* pixels = static_cast<JSAMPLE*>(output.mutable_data());
+  const auto stride = static_cast<size_t>(width * components);
+
+  if (setjmp(err.jump_buffer)) {
+    ThrowDecodeError(&cinfo, &err, gil.get());
+  }
+
+  ReleaseGil(gil.get());
+  while (cinfo.output_scanline < cinfo.output_height) {
+    JSAMPROW row = pixels + static_cast<size_t>(cinfo.output_scanline) * stride;
+    jpegli_read_scanlines(&cinfo, &row, 1);
+  }
+  jpegli_finish_decompress(&cinfo);
+  jpegli_destroy_decompress(&cinfo);
+  RestoreGil(gil.get());
+  return output;
 }
 
 void ProbeJpegHeader(py::bytes data) {
-  const std::string input = ToString(data);
+  const BytesView input = GetBytesView(data);
+  ValidateInputSize(input.size);
   jpeg_decompress_struct cinfo{};
   ErrorManager err{};
   cinfo.err = SetupErrorManager(&err);
@@ -30,15 +259,28 @@ void ProbeJpegHeader(py::bytes data) {
   jpegli_create_decompress(&cinfo);
   jpegli_mem_src(
       &cinfo,
-      reinterpret_cast<const unsigned char*>(input.data()),
-      static_cast<unsigned long>(input.size()));
+      reinterpret_cast<const unsigned char*>(input.data),
+      static_cast<unsigned long>(input.size));
   jpegli_read_header(&cinfo, TRUE);
   jpegli_destroy_decompress(&cinfo);
 }
 
-py::object Decode(py::bytes data, py::object /* options */) {
-  ProbeJpegHeader(data);
-  throw std::runtime_error("jpegli decode image output is not implemented");
+py::array Decode(py::bytes data, py::object options) {
+  const BytesView input = GetBytesView(data);
+  return DecodeBuffer(input.data, input.size, options);
+}
+
+py::array Imread(py::str path, py::object options) {
+  const std::string file_path = path;
+  std::vector<uint8_t> input;
+  try {
+    py::gil_scoped_release release;
+    input = ReadFile(file_path);
+  } catch (const FileReadError& exc) {
+    PyErr_SetString(PyExc_FileNotFoundError, exc.what());
+    throw py::error_already_set();
+  }
+  return DecodeBuffer(input.data(), input.size(), options);
 }
 
 py::object Info(py::bytes data) {
@@ -50,8 +292,8 @@ py::object Info(py::bytes data) {
 
 void BindDecode(py::module_& m) {
   m.def("decode", &Decode, py::arg("data"), py::kw_only(), py::arg("options"));
+  m.def("imread", &Imread, py::arg("path"), py::kw_only(), py::arg("options"));
   m.def("info", &Info, py::arg("data"));
 }
 
 }  // namespace ajpegli
-
