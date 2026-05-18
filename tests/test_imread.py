@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import ajpegli
@@ -36,3 +37,10 @@ def test_imread_missing_file_raises_file_not_found() -> None:
     with pytest.raises(FileNotFoundError):
         ajpegli.imread("missing.jpg")
 
+
+def test_imread_is_safe_from_thread_pool() -> None:
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        images = list(executor.map(ajpegli.imread, [SAMPLE_JPEG] * 8))
+
+    assert all(image.shape == (1, 1, 3) for image in images)
+    assert all(image.dtype == np.uint8 for image in images)

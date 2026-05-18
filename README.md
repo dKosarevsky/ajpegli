@@ -35,4 +35,6 @@ assert image.ndim == 3
 ```
 
 `imread()` reads the file in the native extension and returns a NumPy array.
-The first decode slice supports `uint8` RGB and grayscale output.
+The first decode slice supports `uint8` RGB and grayscale output. File I/O and
+jpegli decode work release the GIL so threaded callers and DataLoader workers do
+not serialize on Python while the native codec is running.
