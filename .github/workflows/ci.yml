@@ -76,3 +76,48 @@ jobs:
           git add badges/coverage.svg
           git commit -m "chore: update coverage badge [skip ci]"
           git push
+
+  numpy-compat:
+    name: NumPy compatibility (${{ matrix.python-version }}, ${{ matrix.numpy-label }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.9"
+            numpy-label: oldest
+            numpy-spec: "numpy==1.23.5"
+          - python-version: "3.13"
+            numpy-label: latest
+            numpy-spec: "numpy==2.4.5"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpng-dev pkg-config zlib1g-dev
+
+      - name: Install Python dependencies
+        run: |
+          uv sync --extra dev
+          uv pip install --upgrade "${{ matrix.numpy-spec }}"
+          uv run python -c "import numpy as np; print(f'numpy {np.__version__}')"
+
+      - name: Run runtime tests
+        run: uv run pytest -q --no-cov
