@@ -4,15 +4,11 @@
 ![Coverage](badges/coverage.svg)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
 
-Production-ready Python bindings for Google jpegli.
+Fast JPEG-to-NumPy image loading powered by Google jpegli.
 
-This repository is being bootstrapped as a native Python package with a stable
-Python facade, a C++/pybind11 extension boundary, NumPy-first APIs, strict
-validation, and reproducible build tooling.
-
-The first implementation slice establishes packaging, tests, and public API
-contracts. Full jpegli encode/decode support is intentionally staged behind the
-native extension boundary.
+`ajpegli` is a dependency-light JPEG loader for Python: pass a file path, get a
+NumPy array. Decoding is powered by Google jpegli and built for high-throughput
+data pipelines.
 
 ## Development
 
@@ -37,9 +33,15 @@ import ajpegli
 image = ajpegli.imread("image.jpg")
 assert image.dtype == "uint8"
 assert image.ndim == 3
+
+bgr = ajpegli.imread("image.jpg", mode="BGR")  # for OpenCV-style pipelines
+gray = ajpegli.imread("image.jpg", mode="L")
 ```
 
 `imread()` reads the file in the native extension and returns a NumPy array.
-The first decode slice supports `uint8` RGB and grayscale output. File I/O and
-jpegli decode work release the GIL so threaded callers and DataLoader workers do
-not serialize on Python while the native codec is running.
+The first decode slice supports `uint8` RGB, BGR, and grayscale output. File I/O
+and jpegli decode work release the GIL so threaded callers and DataLoader
+workers do not serialize on Python while the native codec is running.
+
+`encode()` and full `info()` metadata output are still planned API surface, not
+the release focus yet.

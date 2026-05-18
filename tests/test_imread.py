@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 SAMPLE_JPEG = Path("third_party/jpegli/testdata/jxl/jpeg_reconstruction/1x1_exif_xmp.jpg")
+COLOR_JPEG = Path("third_party/jpegli/testdata/jxl/jpeg_reconstruction/sideways_bench.jpg")
 
 
 def test_imread_returns_numpy_array_from_path() -> None:
@@ -25,6 +26,17 @@ def test_imread_supports_grayscale_mode() -> None:
     assert image.shape == (1, 1)
 
 
+def test_imread_supports_bgr_mode_without_python_channel_swap() -> None:
+    rgb = ajpegli.imread(COLOR_JPEG, mode="RGB")
+    bgr = ajpegli.imread(COLOR_JPEG, mode="BGR")
+    row = rgb.shape[0] // 2
+    col = rgb.shape[1] // 2
+
+    assert rgb[row, col].tolist() == [38, 206, 51]
+    assert bgr[row, col].tolist() == [51, 206, 38]
+    assert bgr.flags.c_contiguous
+
+
 def test_decode_returns_numpy_array_from_bytes() -> None:
     image = ajpegli.decode(SAMPLE_JPEG.read_bytes())
 
@@ -38,9 +50,23 @@ def test_imread_missing_file_raises_file_not_found() -> None:
         ajpegli.imread("missing.jpg")
 
 
+def test_imread_empty_file_raises_decode_error(tmp_path: Path) -> None:
+    empty_jpeg = tmp_path / "empty.jpg"
+    empty_jpeg.write_bytes(b"")
+
+    with pytest.raises(ajpegli.DecodeError, match="jpegli decode failed"):
+        ajpegli.imread(empty_jpeg)
+
+
+def test_imread_respects_max_pixels_before_allocation() -> None:
+    with pytest.raises(ajpegli.DecodeError, match="max_pixels"):
+        ajpegli.imread(COLOR_JPEG, max_pixels=1)
+
+
 def test_imread_is_safe_from_thread_pool() -> None:
     with ThreadPoolExecutor(max_workers=4) as executor:
-        images = list(executor.map(ajpegli.imread, [SAMPLE_JPEG] * 8))
+        images = list(executor.map(ajpegli.imread, [SAMPLE_JPEG, COLOR_JPEG] * 4))
 
-    assert all(image.shape == (1, 1, 3) for image in images)
+    assert images[0].shape == (1, 1, 3)
+    assert images[1].shape == (243, 201, 3)
     assert all(image.dtype == np.uint8 for image in images)
