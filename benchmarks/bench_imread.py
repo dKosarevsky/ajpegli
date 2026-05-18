@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import math
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ Reader = Callable[[Path], tuple[int, ...]]
 Timer = Callable[[], float]
 SUPPORTED_CODECS = ("ajpegli", "cv2", "pillow")
 SUPPORTED_MODES = ("RGB", "BGR", "L")
+MIN_IMAGE_SHAPE_DIMS = 2
 
 
 @dataclass(frozen=True)
@@ -67,11 +69,14 @@ def _bench_reader(
     timer: Timer = perf_counter,
 ) -> dict[str, Any]:
     shape: tuple[int, ...] | None = None
+    latencies: list[float] = []
     start = timer()
     for index in range(iterations):
+        read_start = timer()
         shape = reader(paths[index % len(paths)])
+        latencies.append(timer() - read_start)
     elapsed_seconds = timer() - start
-    return _throughput_result(iterations, elapsed_seconds, shape)
+    return _throughput_result(iterations, elapsed_seconds, shape, latencies=latencies)
 
 
 def _bench_threaded_reader(
@@ -98,13 +103,45 @@ def _throughput_result(
     images: int,
     elapsed_seconds: float,
     shape: tuple[int, ...] | None,
+    *,
+    latencies: Sequence[float] | None = None,
 ) -> dict[str, Any]:
-    return {
+    result: dict[str, Any] = {
         "images": images,
         "seconds": elapsed_seconds,
         "images_per_second": images / elapsed_seconds,
+        "megapixels_per_second": _megapixels_per_second(images, elapsed_seconds, shape),
         "last_shape": shape,
     }
+    if latencies is not None:
+        result["p50_seconds"] = _percentile(latencies, 50)
+        result["p95_seconds"] = _percentile(latencies, 95)
+    return result
+
+
+def _megapixels_per_second(
+    images: int,
+    elapsed_seconds: float,
+    shape: tuple[int, ...] | None,
+) -> float | None:
+    if shape is None or len(shape) < MIN_IMAGE_SHAPE_DIMS:
+        return None
+    pixels = shape[0] * shape[1]
+    return images * pixels / elapsed_seconds / 1_000_000
+
+
+def _percentile(values: Sequence[float], percentile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * percentile / 100
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    lower_value = ordered[lower]
+    upper_value = ordered[upper]
+    return lower_value + (upper_value - lower_value) * (position - lower)
 
 
 def _make_ajpegli_reader(mode: str) -> Reader:

@@ -57,7 +57,9 @@ the release focus yet.
 ## Benchmarks
 
 The benchmark script keeps comparison tools optional so `pip install ajpegli`
-only needs NumPy at runtime.
+only needs NumPy at runtime. See [Benchmarks](docs/benchmarks.md) and
+[DataLoader Benchmarking](docs/dataloader.md) for the report format and worker
+matrix.
 
 ```bash
 just bench-imread path/to/a.jpg 1000 8 RGB ajpegli,cv2,pillow
