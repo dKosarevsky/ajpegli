@@ -4,6 +4,7 @@ import runpy
 import string
 import subprocess
 import sys
+from importlib.metadata import version
 from typing import Any
 
 import ajpegli
@@ -14,9 +15,11 @@ from ajpegli import api
 from ajpegli.cli import main
 from numpy.typing import NDArray
 
+STABLE_VERSION = version("ajpegli")
+
 
 def test_version_and_jpegli_commit_are_public() -> None:
-    assert ajpegli.__version__ == "0.1.2"
+    assert ajpegli.__version__ == STABLE_VERSION
     assert isinstance(ajpegli.__jpegli_commit__, str)
     assert len(ajpegli.__jpegli_commit__) == 40
     assert set(ajpegli.__jpegli_commit__) <= set(string.hexdigits)
@@ -106,7 +109,7 @@ def test_module_cli_info_without_args_exits_cleanly() -> None:
         text=True,
     )
     assert result.returncode == 0
-    assert "ajpegli 0.1.0" in result.stdout
+    assert f"ajpegli {STABLE_VERSION}" in result.stdout
 
 
 def test_decode_accepts_bytearray_then_reaches_native_boundary() -> None:
@@ -162,7 +165,7 @@ def test_native_extension_is_linked_to_jpegli() -> None:
 
 def test_cli_main_prints_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--version"]) == 0
-    assert "ajpegli 0.1.0" in capsys.readouterr().out
+    assert f"ajpegli {STABLE_VERSION}" in capsys.readouterr().out
 
 
 def test_cli_main_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
