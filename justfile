@@ -11,6 +11,13 @@ sync:
 test:
     {{ UV }} run pytest
 
+test-coverage:
+    {{ UV }} run pytest --cov-report=json:coverage.json
+
+coverage-badge:
+    just test-coverage
+    {{ UV }} run python -m tools.coverage_badge --coverage-json coverage.json --output badges/coverage.svg
+
 test-fast:
     {{ UV }} run pytest -q --no-cov
 
@@ -21,7 +28,7 @@ format:
     {{ UV }} run ruff format .
 
 typecheck:
-    {{ UV }} run ty check python tests
+    {{ UV }} run ty check python tests tools
 
 build:
     {{ UV }} run python -m build
@@ -33,3 +40,8 @@ check:
     just lint
     just typecheck
     just test
+
+ci:
+    just lint
+    just typecheck
+    just coverage-badge

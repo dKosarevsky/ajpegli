@@ -2,6 +2,7 @@
 .ruff_cache/
 .pytest_cache/
 .coverage
+coverage.json
 htmlcov/
 build/
 dist/
@@ -12,4 +13,3 @@ __pycache__/
 .idea/
 .worktrees/
 worktrees/
-

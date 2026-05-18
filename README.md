@@ -1,5 +1,9 @@
 # ajpegli
 
+[![CI](https://github.com/dKosarevsky/ajpegli/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dKosarevsky/ajpegli/actions/workflows/ci.yml)
+![Coverage](badges/coverage.svg)
+[![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
+
 Production-ready Python bindings for Google jpegli.
 
 This repository is being bootstrapped as a native Python package with a stable
