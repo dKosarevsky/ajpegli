@@ -62,8 +62,32 @@ jobs:
           path: dist/*.tar.gz
           if-no-files-found: error
 
+  wheel-smoke:
+    name: Build wheel smoke (manylinux x86_64)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Build wheel
+        uses: pypa/cibuildwheel@v3.4.1
+        env:
+          CIBW_ARCHS: x86_64
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: wheels-manylinux-x86_64
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
   wheels:
     name: Build wheels (${{ matrix.label }})
+    if: github.event_name != 'pull_request'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
