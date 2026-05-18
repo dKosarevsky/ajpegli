@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from importlib.metadata import version
+
 from . import _native
 
-__version__ = "0.1.0"
+__version__ = version("ajpegli")
 __jpegli_commit__ = _native.jpegli_commit()
 
 
