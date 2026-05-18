@@ -47,7 +47,8 @@ uv add ajpegli
 
 ## Quickstart
 
-ajpegli ships prebuilt wheels for common Linux, macOS, and Windows CPython builds. NumPy is the only runtime dependency.
+ajpegli ships prebuilt wheels for common Linux, macOS, and Windows CPython
+builds. NumPy is the only runtime dependency.
 
 ```python
 import ajpegli
@@ -71,9 +72,6 @@ benchmark tools and are not required by `pip install ajpegli`.
 
 `encode()` and full `info()` metadata output are still planned API surface, not
 the release focus yet.
-
-The API is cv2.imread-like, but not a drop-in OpenCV replacement: color images are returned as RGB by default. Use
-mode="BGR" for OpenCV-style pipelines.
 
 For local source builds, clone with submodules:
 
