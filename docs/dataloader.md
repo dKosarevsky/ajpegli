@@ -1,9 +1,10 @@
 # DataLoader Benchmarking
 
-`ajpegli.imread(path)` is designed for dataset code that maps a file path to a
-NumPy array. The native read/decode path releases the GIL, but DataLoader
-throughput still depends on storage, process startup, batch size, and image
-sizes. Measure it on the target machine before making speed claims.
+`ajpegli.imread(path)` maps a file path to a NumPy array, and
+`ajpegli.decode(data)` maps preloaded JPEG bytes to a NumPy array. The native
+decode path releases the GIL, but DataLoader throughput still depends on
+storage, process startup, batch size, and image sizes. Measure it on the target
+machine before making speed claims.
 
 Initial smoke numbers are published in
 [DataLoader Results](dataloader-results.md). They use one vendored JPEG and are
@@ -32,6 +33,27 @@ class JpegDataset:
 Keep transforms outside the benchmark first. Add them back only after the raw
 decode path is understood.
 
+For RAM-backed benchmarks, preload the JPEG bytes once and decode from memory in
+`__getitem__`:
+
+```python
+from pathlib import Path
+
+import ajpegli
+
+
+class InMemoryJpegDataset:
+    def __init__(self, paths: list[str | Path], mode: str = "RGB") -> None:
+        self.samples = [Path(path).read_bytes() for path in paths]
+        self.mode = mode
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, index: int):
+        return ajpegli.decode(self.samples[index], mode=self.mode)
+```
+
 ## Worker Matrix
 
 Run this matrix for each dataset group and mode:
@@ -48,6 +70,7 @@ just bench-imread-dataloader path/to/small/*.jpg 1000 0 RGB 32
 just bench-imread-dataloader path/to/small/*.jpg 1000 4 RGB 32
 uv run python benchmarks/bench_imread.py path/to/medium/*.jpg \
   --mode RGB \
+  --source bytes \
   --iterations 2000 \
   --thread-workers 8 \
   --dataloader-workers 8 \

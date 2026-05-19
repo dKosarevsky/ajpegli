@@ -8,11 +8,11 @@
 
 Fast JPEG-to-NumPy image loading powered by Google jpegli.
 
-`ajpegli` is a dependency-light JPEG loader for Python: pass a file path, get a
-NumPy array. Decoding is powered by Google jpegli and built for high-throughput
-data pipelines. The API is `cv2.imread`-like, but it is not a drop-in OpenCV
-replacement: color images are returned as RGB by default. Pass `mode="BGR"` for
-OpenCV-style pipelines.
+`ajpegli` is a dependency-light JPEG loader for Python: pass a file path or
+preloaded JPEG bytes, get a NumPy array. Decoding is powered by Google jpegli
+and built for high-throughput data pipelines. The path API is `cv2.imread`-like,
+but it is not a drop-in OpenCV replacement: color images are returned as RGB by
+default. Pass `mode="BGR"` for OpenCV-style pipelines.
 
 ## Development
 
@@ -60,12 +60,20 @@ assert image.ndim == 3
 rgb = ajpegli.imread("image.jpg", mode="RGB")  # default
 bgr = ajpegli.imread("image.jpg", mode="BGR")  # for OpenCV-style pipelines
 gray = ajpegli.imread("image.jpg", mode="L")
+
+with open("image.jpg", "rb") as file:
+    data = file.read()
+
+rgb_from_memory = ajpegli.decode(data, mode="RGB")
+bgr_from_memory = ajpegli.decode(data, mode="BGR")
 ```
 
 `imread()` reads the file in the native extension and returns a NumPy array.
-The first decode slice supports `uint8` RGB, BGR, and grayscale output. File I/O
-and jpegli decode work release the GIL so threaded callers and DataLoader
-workers do not serialize on Python while the native codec is running.
+`decode()` accepts JPEG `bytes` or another bytes-like object and decodes from
+memory with the same mode options. The first decode slice supports `uint8` RGB,
+BGR, and grayscale output. File I/O and jpegli decode work release the GIL so
+threaded callers and DataLoader workers do not serialize on Python while the
+native codec is running.
 
 NumPy is the only runtime dependency. OpenCV, Pillow, and PyTorch are optional
 benchmark tools and are not required by `pip install ajpegli`.
@@ -99,7 +107,9 @@ just bench-imread-dataloader path/to/a.jpg 1000 4 RGB 32
 throughput, and optional PyTorch `DataLoader` throughput. Missing optional
 comparison packages are reported as skipped entries instead of failing the run.
 Use `--thread-workers` for threaded reader throughput and
-`--dataloader-workers` for PyTorch `DataLoader` worker count.
+`--dataloader-workers` for PyTorch `DataLoader` worker count. Use
+`--source bytes` when benchmarking preloaded JPEG bytes from RAM instead of
+path reads.
 The checked-in smoke reports are intentionally narrow; broader dataset reports
 are still required before making project-level speed claims against OpenCV or
 Pillow.
