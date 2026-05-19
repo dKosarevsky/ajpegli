@@ -253,12 +253,24 @@ def _bench_torch_dataloader(
     return result
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Benchmark JPEG-to-NumPy loading throughput.")
     parser.add_argument("images", nargs="+", type=Path, help="JPEG file(s) to decode")
     parser.add_argument("--mode", default="RGB", choices=SUPPORTED_MODES)
     parser.add_argument("--iterations", type=_positive_int, default=1000)
-    parser.add_argument("--workers", type=_positive_int, default=8)
+    parser.add_argument(
+        "--thread-workers",
+        dest="thread_workers",
+        type=_positive_int,
+        default=8,
+        help="ThreadPoolExecutor worker count for threaded reader throughput.",
+    )
+    parser.add_argument(
+        "--workers",
+        dest="thread_workers",
+        type=_positive_int,
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--warmup", type=_positive_int, default=10)
     parser.add_argument("--codecs", type=_parse_codecs, default=list(SUPPORTED_CODECS))
     parser.add_argument("--include-dataloader", action="store_true")
@@ -267,14 +279,18 @@ def parse_args() -> argparse.Namespace:
         "--dataloader-workers",
         type=_non_negative_int,
         default=None,
-        help="PyTorch DataLoader num_workers. Defaults to --workers.",
+        help="PyTorch DataLoader num_workers. Defaults to --thread-workers.",
     )
     parser.add_argument(
         "--multiprocessing-context",
         choices=["fork", "spawn", "forkserver"],
         default=None,
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def parse_args() -> argparse.Namespace:
+    return _parse_args()
 
 
 def main() -> int:
@@ -295,7 +311,7 @@ def main() -> int:
                 codec.reader,
                 paths,
                 iterations=args.iterations,
-                workers=args.workers,
+                workers=args.thread_workers,
             ),
         }
 
@@ -306,7 +322,7 @@ def main() -> int:
         "codecs": results,
     }
     if args.include_dataloader:
-        dataloader_workers = args.workers
+        dataloader_workers = args.thread_workers
         if args.dataloader_workers is not None:
             dataloader_workers = args.dataloader_workers
         output["torch_dataloader"] = _bench_torch_dataloader(

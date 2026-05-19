@@ -163,6 +163,10 @@ def test_native_extension_is_linked_to_jpegli() -> None:
     assert native.jpegli_linked() is True
 
 
+def test_native_version_matches_package_metadata() -> None:
+    assert native.native_version() == STABLE_VERSION
+
+
 def test_cli_main_prints_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--version"]) == 0
     assert f"ajpegli {STABLE_VERSION}" in capsys.readouterr().out

@@ -29,7 +29,7 @@ uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode RGB \
   --iterations 50 \
-  --workers 4 \
+  --thread-workers 4 \
   --warmup 3 \
   --codecs ajpegli,cv2,pillow
 
@@ -37,7 +37,7 @@ uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode BGR \
   --iterations 50 \
-  --workers 4 \
+  --thread-workers 4 \
   --warmup 3 \
   --codecs ajpegli,cv2,pillow
 
@@ -45,7 +45,7 @@ uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode L \
   --iterations 50 \
-  --workers 4 \
+  --thread-workers 4 \
   --warmup 3 \
   --codecs ajpegli,cv2,pillow
 ```

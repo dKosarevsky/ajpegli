@@ -46,6 +46,16 @@ just bench-imread path/to/medium/*.jpg 1000 8 BGR ajpegli,cv2,pillow
 just bench-imread path/to/large/*.jpg 200 8 L ajpegli,cv2,pillow
 ```
 
+The lower-level runner uses explicit worker names:
+
+```bash
+uv run python benchmarks/bench_imread.py path/to/small/*.jpg \
+  --mode RGB \
+  --iterations 1000 \
+  --thread-workers 8 \
+  --codecs ajpegli,cv2,pillow
+```
+
 The JSON output includes:
 
 - `images_per_second`: decoded images per second.

@@ -21,11 +21,12 @@ x86_64 wheel path; tag and manual runs build the full release matrix:
 
 Before tagging a release:
 
-1. Confirm `pyproject.toml` and `python/ajpegli/_version.py` contain the same
-   version.
+1. Bump `pyproject.toml` and `CMakeLists.txt` to the next release version.
 2. Update `CHANGELOG.md` with user-facing changes and the vendored jpegli
    commit.
-3. Run `just check`.
+3. Run `just check`; it includes `tools.check_versions`, which verifies
+   `pyproject.toml`, CMake `PROJECT_VERSION`, installed package metadata, and
+   `_ajpegli.native_version()`.
 4. Confirm the latest `main` CI run is green.
 5. Confirm the benchmark smoke artifact exists for the latest `main` run.
 6. For performance claims, update `docs/benchmark-results.md` and
