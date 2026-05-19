@@ -233,15 +233,17 @@ def _make_cv2_bytes_reader(mode: str) -> Reader:
 
     def read(sample: DecodeSample) -> tuple[int, ...]:
         encoded = np.frombuffer(sample.data, dtype=np.uint8)
+        decoded_as_rgb = False
         if mode == "L":
             image = cv2.imdecode(encoded, cv2.IMREAD_GRAYSCALE)
         elif mode == "RGB" and hasattr(cv2, "IMREAD_COLOR_RGB"):
             image = cv2.imdecode(encoded, cv2.IMREAD_COLOR_RGB)
+            decoded_as_rgb = True
         else:
             flag = getattr(cv2, "IMREAD_COLOR_BGR", cv2.IMREAD_COLOR)
             image = cv2.imdecode(encoded, flag)
-            if image is not None and mode == "RGB":
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        if image is not None and mode == "RGB" and not decoded_as_rgb:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if image is None:
             raise RuntimeError(f"cv2 failed to decode JPEG bytes: {sample.path}")
         return tuple(image.shape)
