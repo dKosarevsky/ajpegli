@@ -102,6 +102,25 @@ for batch_size in 32 64 128; do
 done
 ```
 
+For CID22 validation-set runs, keep the same matrix and add the dataset preset:
+
+```bash
+for batch_size in 32 64 128; do
+  for workers in 0 2 4 8 16; do
+    uv run python benchmarks/bench_imread.py data/cid22-validation \
+      --dataset cid22-validation \
+      --mode RGB \
+      --source bytes \
+      --iterations 2000 \
+      --thread-workers 8 \
+      --dataloader-workers "$workers" \
+      --codecs ajpegli \
+      --include-dataloader \
+      --batch-size "$batch_size"
+  done
+done
+```
+
 ## Report Fields
 
 The `torch_dataloader` JSON object reports:

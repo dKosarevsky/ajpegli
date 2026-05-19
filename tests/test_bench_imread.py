@@ -11,6 +11,8 @@ import pytest
 from benchmarks.bench_imread import (
     DecodeSample,
     _bench_reader,
+    _dataset_info,
+    _discover_input_paths,
     _make_cv2_bytes_reader,
     _non_negative_int,
     _parse_args,
@@ -96,6 +98,45 @@ def test_parse_args_accepts_bytes_source() -> None:
     args = _parse_args(["image.jpg", "--source", "bytes"])
 
     assert args.source == "bytes"
+
+
+def test_parse_args_accepts_cid22_validation_dataset() -> None:
+    args = _parse_args(["data/cid22-validation", "--dataset", "cid22-validation"])
+
+    assert args.dataset == "cid22-validation"
+
+
+def test_cid22_dataset_discovers_jpeg_files_recursively(tmp_path: Path) -> None:
+    root = tmp_path / "cid22-validation"
+    nested = root / "nested"
+    nested.mkdir(parents=True)
+    first = root / "b.jpeg"
+    second = nested / "a.JPG"
+    first.write_bytes(b"jpeg")
+    second.write_bytes(b"jpeg")
+    (nested / "not-jpeg.png").write_bytes(b"png")
+    (root / "notes.txt").write_text("ignore", encoding="utf-8")
+
+    assert _discover_input_paths([root], "cid22-validation") == (first, second)
+
+
+def test_cid22_dataset_rejects_empty_roots(tmp_path: Path) -> None:
+    root = tmp_path / "cid22-validation"
+    root.mkdir()
+
+    with pytest.raises(ValueError, match="no JPEG files found"):
+        _discover_input_paths([root], "cid22-validation")
+
+
+def test_cid22_dataset_info_records_source_and_license() -> None:
+    info = _dataset_info("cid22-validation", image_count=3)
+
+    assert info == {
+        "name": "cid22-validation",
+        "image_count": 3,
+        "url": "https://cloudinary.com/labs/cid22",
+        "license": "CC BY-SA 4.0",
+    }
 
 
 def test_preload_samples_reads_file_bytes_once(tmp_path: Path) -> None:

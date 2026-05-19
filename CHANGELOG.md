@@ -18,6 +18,8 @@ commit is part of each release note because jpegli itself is pinned by commit.
   `BytesIO` decode paths.
 - Added bytes-backed PyTorch `DataLoader` benchmark support for preloaded JPEG
   samples.
+- Added a manual CID22 validation-set benchmark preset for external
+  RAM-backed decoder and DataLoader measurements.
 
 Vendored jpegli commit: `7cdf212790241868c77dca777dbee14e98128cba`.
 

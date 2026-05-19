@@ -16,6 +16,10 @@ import ajpegli
 import numpy as np
 
 SUPPORTED_SOURCES = ("path", "bytes")
+SUPPORTED_DATASETS = ("files", "cid22-validation")
+JPEG_SUFFIXES = frozenset({".jpg", ".jpeg"})
+CID22_DATASET_URL = "https://cloudinary.com/labs/cid22"
+CID22_LICENSE = "CC BY-SA 4.0"
 
 
 @dataclass(frozen=True)
@@ -94,6 +98,44 @@ def _preload_samples(paths: Sequence[Path]) -> list[DecodeSample]:
 
 def _path_samples(paths: Sequence[Path]) -> list[DecodeSample]:
     return [DecodeSample(path=path, data=b"") for path in paths]
+
+
+def _is_jpeg_path(path: Path) -> bool:
+    return path.suffix.lower() in JPEG_SUFFIXES
+
+
+def _discover_input_paths(paths: Sequence[Path], dataset: str) -> tuple[Path, ...]:
+    if dataset == "files":
+        return tuple(paths)
+    if dataset != "cid22-validation":
+        raise ValueError(f"unsupported dataset: {dataset}")
+
+    discovered: list[Path] = []
+    for root in paths:
+        if not root.exists():
+            raise FileNotFoundError(root)
+        if root.is_file():
+            if _is_jpeg_path(root):
+                discovered.append(root)
+            continue
+        discovered.extend(
+            path for path in root.rglob("*") if path.is_file() and _is_jpeg_path(path)
+        )
+    if not discovered:
+        roots = ", ".join(str(path) for path in paths)
+        raise ValueError(f"no JPEG files found for cid22-validation under: {roots}")
+    return tuple(sorted(discovered))
+
+
+def _dataset_info(dataset: str, *, image_count: int) -> dict[str, Any]:
+    info: dict[str, Any] = {
+        "name": dataset,
+        "image_count": image_count,
+    }
+    if dataset == "cid22-validation":
+        info["url"] = CID22_DATASET_URL
+        info["license"] = CID22_LICENSE
+    return info
 
 
 def _bench_reader(
@@ -358,7 +400,21 @@ def _bench_torch_dataloader(
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Benchmark JPEG-to-NumPy loading throughput.")
-    parser.add_argument("images", nargs="+", type=Path, help="JPEG file(s) to decode")
+    parser.add_argument(
+        "images",
+        nargs="+",
+        type=Path,
+        help="JPEG file(s) to decode, or dataset root(s) when --dataset is set.",
+    )
+    parser.add_argument(
+        "--dataset",
+        default="files",
+        choices=SUPPORTED_DATASETS,
+        help=(
+            "Input interpretation. Use cid22-validation with an extracted CID22 "
+            "validation root to recursively benchmark JPEG files only."
+        ),
+    )
     parser.add_argument("--mode", default="RGB", choices=SUPPORTED_MODES)
     parser.add_argument("--source", default="path", choices=SUPPORTED_SOURCES)
     parser.add_argument("--iterations", type=_positive_int, default=1000)
@@ -399,7 +455,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    paths = tuple(args.images)
+    paths = _discover_input_paths(tuple(args.images), args.dataset)
     samples = _preload_samples(paths) if args.source == "bytes" else _path_samples(paths)
     codecs, results = _resolve_codecs(args.codecs, args.mode, args.source)
 
@@ -421,6 +477,7 @@ def main() -> int:
         }
 
     output: dict[str, Any] = {
+        "dataset": _dataset_info(args.dataset, image_count=len(paths)),
         "images": [str(path) for path in paths],
         "mode": args.mode,
         "source": args.source,

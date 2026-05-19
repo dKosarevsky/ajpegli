@@ -35,6 +35,49 @@ Use at least three groups before making project-level performance claims:
 The vendored jpegli files are useful for smoke tests, but they are not a
 representative speed dataset by themselves.
 
+### Vendored libjxl testdata
+
+The jpegli submodule vendors `libjxl/testdata` at commit
+`ff8d743aaba05b3014f17e5475e576242fa979fc`. Use it for CI smoke tests,
+regression fixtures, malformed JPEG coverage, and quick local sanity checks.
+It is intentionally small and pinned, so it should not be used as the only
+source for project-level speed claims.
+
+### CID22
+
+For release-grade decoder benchmarks, use the Cloudinary Image Dataset '22
+validation set as an external manual dataset. CID22 is focused on image
+compression quality from medium quality to near visually lossless, and the
+validation set contains 49 reference images and 4292 distorted images. The
+dataset is licensed under CC BY-SA 4.0, so do not vendor it into this
+repository or ship it in wheels.
+
+Download the CID22 validation set from <https://cloudinary.com/labs/cid22>,
+extract it outside the repository or under an ignored local data directory, and
+point the benchmark runner at the extracted root:
+
+```bash
+just bench-cid22 data/cid22-validation 1000 8 RGB ajpegli,cv2,pillow bytes
+```
+
+The lower-level command is:
+
+```bash
+uv run python benchmarks/bench_imread.py data/cid22-validation \
+  --dataset cid22-validation \
+  --mode RGB \
+  --source bytes \
+  --iterations 1000 \
+  --thread-workers 8 \
+  --codecs ajpegli,cv2,pillow
+```
+
+`--dataset cid22-validation` treats each positional argument as an extracted
+dataset root or JPEG file, recursively discovers only `.jpg` / `.jpeg` files,
+and records the CID22 URL, license, and discovered image count in the output
+JSON. Prefer `--source bytes` for CID22 when comparing decoder throughput so
+the benchmark measures preloaded JPEG buffers rather than disk speed.
+
 ## Single-Process And Threaded
 
 Run each mode separately because RGB, BGR, and grayscale have different
