@@ -14,6 +14,11 @@ and built for high-throughput data pipelines. The path API is `cv2.imread`-like,
 but it is not a drop-in OpenCV replacement: color images are returned as RGB by
 default. Pass `mode="BGR"` for OpenCV-style pipelines.
 
+Current status: Alpha. The release focus is `imread()` / `imdecode()` JPEG
+loading with a small runtime dependency footprint. Benchmarks are published as
+regression baselines, not as claims that `ajpegli` is faster than OpenCV or
+Pillow.
+
 ## Development
 
 Clone with submodules before building native wheels:
