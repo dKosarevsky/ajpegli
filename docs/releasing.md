@@ -32,7 +32,8 @@ Before tagging a release:
 6. For performance claims, update `docs/benchmark-results.md` and
    `docs/dataloader-results.md` from a reproducible run.
 7. Create and push an annotated `v*` tag.
-8. Watch the `Wheels` workflow until `Publish to PyPI` succeeds.
+8. Watch the `Wheels` workflow until `Publish to PyPI` and
+   `PyPI sdist install smoke` succeed.
 9. Verify PyPI visibility with `python -m pip index versions ajpegli`.
 
 ## Trusted publishing

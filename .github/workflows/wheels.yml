@@ -172,3 +172,90 @@ jobs:
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  pypi-sdist-install-smoke:
+    name: PyPI sdist install smoke
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish == 'pypi')
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpng-dev pkg-config zlib1g-dev
+
+      - name: Resolve published version
+        id: version
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" == v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
+          PY
+          )"
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install published sdist
+        run: |
+          python -m venv /tmp/ajpegli-sdist-smoke
+          source /tmp/ajpegli-sdist-smoke/bin/activate
+          python -m pip install --upgrade pip
+
+          for attempt in {1..12}; do
+            if python -m pip install --no-cache-dir --no-binary ajpegli "ajpegli==${{ steps.version.outputs.version }}"; then
+              exit 0
+            fi
+            echo "Published sdist is not installable yet; retry ${attempt}/12."
+            sleep 10
+          done
+
+          python -m pip install --no-cache-dir --no-binary ajpegli "ajpegli==${{ steps.version.outputs.version }}"
+
+      - name: Smoke installed package
+        env:
+          AJPEGLI_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          source /tmp/ajpegli-sdist-smoke/bin/activate
+          cd /tmp
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          import ajpegli
+          import numpy as np
+
+          image = (
+              Path(os.environ["GITHUB_WORKSPACE"])
+              / "third_party"
+              / "jpegli"
+              / "testdata"
+              / "jxl"
+              / "jpeg_reconstruction"
+              / "1x1_exif_xmp.jpg"
+          )
+          decoded = ajpegli.imread(image)
+          decoded_from_memory = ajpegli.imdecode(image.read_bytes())
+
+          assert ajpegli.__version__ == os.environ["AJPEGLI_VERSION"]
+          assert decoded.shape == (1, 1, 3)
+          assert decoded.dtype == np.dtype("uint8")
+          assert decoded_from_memory.shape == decoded.shape
+          assert decoded_from_memory.dtype == decoded.dtype
+          print(f"ajpegli {ajpegli.__version__}")
+          PY
