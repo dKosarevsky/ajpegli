@@ -18,6 +18,7 @@ dataset.
 - Pillow: 12.2.0
 - Image: `third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg`
 - Shape: 1040 x 1040
+- Source: path
 - Iterations: 50
 - Warmup: 3
 - Threaded workers: 4
@@ -28,6 +29,7 @@ Commands:
 uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode RGB \
+  --source path \
   --iterations 50 \
   --thread-workers 4 \
   --warmup 3 \
@@ -36,6 +38,7 @@ uv run python benchmarks/bench_imread.py \
 uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode BGR \
+  --source path \
   --iterations 50 \
   --thread-workers 4 \
   --warmup 3 \
@@ -44,6 +47,7 @@ uv run python benchmarks/bench_imread.py \
 uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode L \
+  --source path \
   --iterations 50 \
   --thread-workers 4 \
   --warmup 3 \
@@ -101,6 +105,7 @@ a compatibility gap instead of hiding it inside throughput numbers.
 - OpenCV: 4.13.0
 - Pillow: 12.2.0
 - Images: 20
+- Source: path
 - Iterations: 200
 - Warmup: 3
 - Threaded workers: 4

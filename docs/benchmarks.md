@@ -51,6 +51,7 @@ The lower-level runner uses explicit worker names:
 ```bash
 uv run python benchmarks/bench_imread.py path/to/small/*.jpg \
   --mode RGB \
+  --source path \
   --iterations 1000 \
   --thread-workers 8 \
   --codecs ajpegli,cv2,pillow
@@ -61,6 +62,23 @@ that reads paths with `jpegli_stdio_src(FILE*)` instead of the public
 `ajpegli.imread()` path, which reads into memory and decodes with
 `jpegli_mem_src`.
 
+Use `--source bytes` to benchmark preloaded JPEG bytes instead of path reads:
+
+```bash
+uv run python benchmarks/bench_imread.py path/to/small/*.jpg \
+  --mode RGB \
+  --source bytes \
+  --iterations 1000 \
+  --thread-workers 8 \
+  --codecs ajpegli,cv2,pillow
+```
+
+In bytes mode, the runner reads each JPEG file into memory once before timing.
+`ajpegli` uses the public `ajpegli.decode(data, mode=...)` API, OpenCV uses
+`cv2.imdecode(np.frombuffer(data, np.uint8), ...)`, and Pillow decodes from a
+`BytesIO` object. The `ajpegli-stdio` codec is path-only and is reported as
+skipped for `--source bytes`.
+
 The JSON output includes:
 
 - `images_per_second`: decoded images per second.
@@ -68,6 +86,7 @@ The JSON output includes:
   decoded shape.
 - `p50_seconds` and `p95_seconds`: per-image latency percentiles for the
   sequential reader.
+- `source`: `path` for path reads or `bytes` for preloaded in-memory JPEG data.
 - `threaded.workers`: the thread count used for threaded throughput.
 - `skipped`: optional comparison packages that were not installed.
 

@@ -16,6 +16,7 @@ claim that this setup represents real training throughput.
 - PyTorch: 2.12.0
 - Image: `third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg`
 - Shape: 1040 x 1040 RGB
+- Source: path
 - Iterations: 256
 - Batch size: 32
 - Warmup: 3
@@ -30,6 +31,7 @@ Command template:
 uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode RGB \
+  --source path \
   --iterations 256 \
   --thread-workers 4 \
   --dataloader-workers N \
@@ -76,6 +78,7 @@ throughput.
 - PyTorch: 2.12.0
 - Images: 20
 - Mode: RGB
+- Source: path
 - Iterations: 512
 - Batch size: 32
 - Warmup: 3
