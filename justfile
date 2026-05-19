@@ -42,6 +42,9 @@ bench-imread files="third_party/jpegli/testdata/jxl/jpeg_reconstruction/1x1_exif
 bench-imread-dataloader files="third_party/jpegli/testdata/jxl/jpeg_reconstruction/1x1_exif_xmp.jpg" iterations="1000" dataloader_workers="4" mode="RGB" batch_size="32" thread_workers="4" source="path":
     {{ UV }} run python benchmarks/bench_imread.py {{ files }} --mode {{ mode }} --source {{ source }} --iterations {{ iterations }} --thread-workers {{ thread_workers }} --dataloader-workers {{ dataloader_workers }} --codecs ajpegli --include-dataloader --batch-size {{ batch_size }}
 
+bench-cid22 root iterations="1000" workers="8" mode="RGB" codecs="ajpegli,cv2,pillow" source="bytes":
+    {{ UV }} run python benchmarks/bench_imread.py {{ root }} --dataset cid22-validation --mode {{ mode }} --source {{ source }} --iterations {{ iterations }} --thread-workers {{ workers }} --codecs {{ codecs }}
+
 bench-guard baseline current max_regression="0.20":
     {{ UV }} run python -m tools.benchmark_guard {{ baseline }} {{ current }} --max-regression {{ max_regression }}
 
