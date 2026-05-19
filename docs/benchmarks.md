@@ -110,6 +110,21 @@ The JSON output includes:
 Keep the raw JSON output with the release artifacts when publishing benchmark
 claims.
 
+## Regression Guard
+
+Use the benchmark guard to compare a current JSON run against a saved baseline
+from the same machine and dataset:
+
+```bash
+just bench-guard artifacts/bench-baseline.json artifacts/bench-current.json 0.20
+```
+
+The guard only compares throughput metrics already emitted by
+`benchmarks/bench_imread.py`: `images_per_second` and
+`megapixels_per_second`. It intentionally does not compare against OpenCV or
+Pillow thresholds. Use it to catch large local regressions, for example a
+15-20% drop on the same runner, not to claim absolute performance superiority.
+
 ## Hot Path Follow-Up
 
 If `ajpegli` trails OpenCV or Pillow on the target data, profile before changing

@@ -63,6 +63,7 @@ def test_decode_invalid_input_raises_decode_error(invalid_jpeg_bytes: bytes) -> 
 
 
 def test_imdecode_is_decode_alias() -> None:
+    assert hasattr(ajpegli, "imdecode")
     assert ajpegli.imdecode is ajpegli.decode
 
 
