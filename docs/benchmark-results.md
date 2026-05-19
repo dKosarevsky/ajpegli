@@ -85,3 +85,39 @@ The current value proposition remains narrower and verifiable: `pip install
 ajpegli`, pass a JPEG path, get a NumPy array, with native jpegli decode, RGB /
 BGR / grayscale modes, GIL release around file I/O and decode, and no OpenCV or
 Pillow runtime dependency.
+
+## Vendored Mixed Corpus
+
+This run uses 20 vendored JPEGs from `third_party/jpegli/testdata/jxl/flower`
+and `third_party/jpegli/testdata/jxl/jpeg_reconstruction`, excluding
+`flower_small.cmyk.jpg` for RGB/BGR/L throughput. That CMYK input currently
+fails when forced to RGB with `Unsupported color transform 5 -> 2`; keep that as
+a compatibility gap instead of hiding it inside throughput numbers.
+
+- Date: 2026-05-19
+- ajpegli: 0.1.4
+- Python: 3.13.7
+- NumPy: 2.4.5
+- OpenCV: 4.13.0
+- Pillow: 12.2.0
+- Images: 20
+- Iterations: 200
+- Warmup: 3
+- Threaded workers: 4
+
+| Mode | Codec | Sequential img/s | Sequential MPix/s | p50 ms | p95 ms | Threaded img/s | Threaded MPix/s |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| RGB | ajpegli | 68.4 | 44.2 | 16.25 | 33.33 | 175.2 | 113.2 |
+| RGB | cv2 | 85.1 | 55.0 | 12.13 | 28.93 | 243.9 | 157.6 |
+| RGB | pillow | 86.3 | 55.7 | 12.64 | 27.21 | 162.8 | 105.2 |
+| BGR | ajpegli | 73.6 | 47.6 | 15.01 | 30.48 | 281.4 | 181.8 |
+| BGR | cv2 | 122.2 | 78.9 | 9.02 | 20.87 | 396.6 | 256.2 |
+| BGR | pillow | 95.8 | 61.9 | 11.45 | 24.41 | 281.9 | 182.1 |
+| L | ajpegli | 101.6 | 65.6 | 11.13 | 23.73 | 385.8 | 249.3 |
+| L | cv2 | 153.2 | 99.0 | 6.66 | 19.83 | 572.7 | 370.0 |
+| L | pillow | 125.2 | 80.9 | 9.39 | 18.71 | 451.5 | 291.7 |
+
+The mixed vendored corpus tells the same story as the one-file smoke result:
+OpenCV is still faster in every measured mode. `ajpegli` threaded BGR is roughly
+at Pillow parity on this corpus, but that is not enough for a project-level
+performance claim.
