@@ -64,16 +64,16 @@ gray = ajpegli.imread("image.jpg", mode="L")
 with open("image.jpg", "rb") as file:
     data = file.read()
 
-rgb_from_memory = ajpegli.decode(data, mode="RGB")
-bgr_from_memory = ajpegli.decode(data, mode="BGR")
+rgb_from_memory = ajpegli.imdecode(data, mode="RGB")
+bgr_from_memory = ajpegli.imdecode(data, mode="BGR")
 ```
 
 `imread()` reads the file in the native extension and returns a NumPy array.
-`decode()` accepts JPEG `bytes` or another bytes-like object and decodes from
-memory with the same mode options. The first decode slice supports `uint8` RGB,
-BGR, and grayscale output. File I/O and jpegli decode work release the GIL so
-threaded callers and DataLoader workers do not serialize on Python while the
-native codec is running.
+`imdecode()` accepts JPEG `bytes` or another bytes-like object and decodes from
+memory with the same mode options. `decode()` is kept as an equivalent alias.
+The first decode slice supports `uint8` RGB, BGR, and grayscale output. File
+I/O and jpegli decode work release the GIL so threaded callers and DataLoader
+workers do not serialize on Python while the native codec is running.
 
 NumPy is the only runtime dependency. OpenCV, Pillow, and PyTorch are optional
 benchmark tools and are not required by `pip install ajpegli`.

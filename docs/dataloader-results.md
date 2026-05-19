@@ -94,3 +94,32 @@ For this vendored mixed corpus, `num_workers=4` is slightly faster than
 `num_workers=0`, while `num_workers=8` is slower. The improvement is small, so
 the practical takeaway is still to measure worker count on the target dataset
 and storage stack instead of assuming more workers are faster.
+
+## Vendored Mixed Corpus, Bytes Source
+
+This run uses the same 20-file vendored corpus, but with `--source bytes`.
+JPEG files are preloaded into memory before timing starts, and each dataset
+item calls `ajpegli.imdecode(data, mode="RGB")`.
+
+- Date: 2026-05-19
+- ajpegli: 0.1.5
+- Python: 3.13.7
+- NumPy: 2.4.5
+- PyTorch: 2.12.0
+- Images: 20
+- Mode: RGB
+- Source: bytes
+- Iterations: 512
+- Batch size: 32
+- Warmup: 3
+
+| DataLoader workers | Images/s | MPix/s | Seconds |
+| ---: | ---: | ---: | ---: |
+| 0 | 86.1 | 295.1 | 5.950 |
+| 2 | 86.4 | 296.4 | 5.924 |
+| 4 | 65.9 | 226.1 | 7.767 |
+| 8 | 41.4 | 142.1 | 12.355 |
+
+For this RAM-backed smoke workload, extra DataLoader workers do not improve
+throughput. The fastest measurements are `num_workers=0` and `num_workers=2`,
+while higher worker counts are slower from multiprocessing overhead.

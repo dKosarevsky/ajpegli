@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 from pathlib import Path
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 from benchmarks.bench_imread import (
     DecodeSample,
     _bench_reader,
+    _make_cv2_bytes_reader,
     _non_negative_int,
     _parse_args,
     _parse_codecs,
@@ -116,3 +120,40 @@ def test_bytes_source_skips_path_only_stdio_codec() -> None:
     assert skipped == {
         "ajpegli-stdio": {"skipped": "ajpegli-stdio does not support bytes source"}
     }
+
+
+def test_cv2_bytes_rgb_reader_does_not_convert_after_rgb_imdecode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, int]] = []
+
+    def imdecode(_encoded: np.ndarray, flag: int) -> np.ndarray:
+        calls.append(("imdecode", flag))
+        return np.zeros((1, 1, 3), dtype=np.uint8)
+
+    def cvt_color(image: np.ndarray, code: int) -> np.ndarray:
+        calls.append(("cvtColor", code))
+        return image
+
+    fake_cv2 = SimpleNamespace(
+        IMREAD_GRAYSCALE=0,
+        IMREAD_COLOR=1,
+        IMREAD_COLOR_BGR=1,
+        IMREAD_COLOR_RGB=256,
+        COLOR_BGR2RGB=4,
+        imdecode=imdecode,
+        cvtColor=cvt_color,
+    )
+    original_import_module = importlib.import_module
+
+    def fake_import_module(name: str):
+        if name == "cv2":
+            return fake_cv2
+        return original_import_module(name)
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
+
+    reader = _make_cv2_bytes_reader("RGB")
+
+    assert reader(DecodeSample(Path("image.jpg"), b"jpeg")) == (1, 1, 3)
+    assert calls == [("imdecode", 256)]

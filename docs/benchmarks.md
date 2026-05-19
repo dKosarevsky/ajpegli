@@ -74,7 +74,7 @@ uv run python benchmarks/bench_imread.py path/to/small/*.jpg \
 ```
 
 In bytes mode, the runner reads each JPEG file into memory once before timing.
-`ajpegli` uses the public `ajpegli.decode(data, mode=...)` API, OpenCV uses
+`ajpegli` uses the public `ajpegli.imdecode(data, mode=...)` API, OpenCV uses
 `cv2.imdecode(np.frombuffer(data, np.uint8), ...)`, and Pillow decodes from a
 `BytesIO` object. The `ajpegli-stdio` codec is path-only and is reported as
 skipped for `--source bytes`.

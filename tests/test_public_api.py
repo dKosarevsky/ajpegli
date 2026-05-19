@@ -62,6 +62,10 @@ def test_decode_invalid_input_raises_decode_error(invalid_jpeg_bytes: bytes) -> 
         ajpegli.decode(invalid_jpeg_bytes)
 
 
+def test_imdecode_is_decode_alias() -> None:
+    assert ajpegli.imdecode is ajpegli.decode
+
+
 def test_encode_rejects_alpha_without_explicit_drop(rgba_uint8: NDArray[np.uint8]) -> None:
     with pytest.raises(ajpegli.InvalidInputError, match="JPEG does not support alpha"):
         ajpegli.encode(rgba_uint8)
@@ -192,7 +196,7 @@ def test_public_exception_hierarchy_accepts_value_error() -> None:
 def test_decode_options_are_passed_to_native(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
-    def fake_decode(data: bytes, **kwargs: Any) -> NDArray[np.uint8]:
+    def fake_decode(data: object, **kwargs: Any) -> NDArray[np.uint8]:
         captured["args"] = (data, kwargs)
         return np.zeros((1, 1, 3), dtype=np.uint8)
 
@@ -219,6 +223,31 @@ def test_decode_options_are_passed_to_native(monkeypatch: pytest.MonkeyPatch) ->
         "max_height": 67,
         "endianness": "little",
     }
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        bytearray(b"jpeg"),
+        memoryview(b"jpeg"),
+        np.frombuffer(b"jpeg", dtype=np.uint8),
+    ],
+)
+def test_decode_passes_bytes_like_input_to_native_without_python_copy(
+    monkeypatch: pytest.MonkeyPatch,
+    data: object,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_decode(input_data: object, **_kwargs: Any) -> NDArray[np.uint8]:
+        captured["data"] = input_data
+        return np.zeros((1, 1, 3), dtype=np.uint8)
+
+    monkeypatch.setattr(api._native, "decode", fake_decode)
+
+    ajpegli.decode(data)
+
+    assert captured["data"] is data
 
 
 def test_imread_options_are_passed_to_native(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -275,6 +304,34 @@ def test_info_accepts_bytearray(monkeypatch: pytest.MonkeyPatch) -> None:
     assert ajpegli.info(bytearray(b"jpeg")) is expected
 
 
+def test_info_accepts_memoryview(monkeypatch: pytest.MonkeyPatch) -> None:
+    expected = ajpegli.JpegInfo(
+        width=1,
+        height=1,
+        components=3,
+        mode="RGB",
+        progressive=False,
+        subsampling="444",
+        density=None,
+        has_icc_profile=False,
+        has_exif=False,
+        has_xmp=False,
+    )
+
+    def fake_info(data: bytes) -> ajpegli.JpegInfo:
+        assert data == b"jpeg"
+        return expected
+
+    monkeypatch.setattr(api._native, "info", fake_info)
+
+    assert ajpegli.info(memoryview(b"jpeg")) is expected
+
+
+def test_info_rejects_non_buffer_input() -> None:
+    with pytest.raises(ajpegli.DecodeError, match="JPEG input must be bytes-like"):
+        ajpegli.info(object())
+
+
 def test_encode_passes_validated_image_to_native(
     monkeypatch: pytest.MonkeyPatch,
     rgb_uint8: NDArray[np.uint8],
@@ -291,3 +348,19 @@ def test_encode_passes_validated_image_to_native(
     assert ajpegli.encode(rgb_uint8, quality=90, comments=["ok"]) == b"jpeg"
     assert captured["shape"] == rgb_uint8.shape
     assert captured["kwargs"]["comments"] == ["ok"]
+
+
+def test_encode_accepts_grayscale_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+    grayscale = np.zeros((2, 3), dtype=np.uint8)
+
+    def fake_encode(image: NDArray[np.uint8], **_kwargs: Any) -> bytes:
+        captured["shape"] = image.shape
+        return b"jpeg"
+
+    monkeypatch.setattr(api._native, "encode", fake_encode)
+
+    assert ajpegli.encode(grayscale) == b"jpeg"
+    assert captured["shape"] == grayscale.shape

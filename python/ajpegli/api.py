@@ -85,7 +85,7 @@ def decode(
         endianness=endianness,
     )
     return _native.decode(
-        _as_bytes(data),
+        _require_bytes_like(data),
         mode=options.mode,
         dtype=options.dtype,
         max_pixels=options.max_pixels,
@@ -93,6 +93,9 @@ def decode(
         max_height=options.max_height,
         endianness=options.endianness,
     )
+
+
+imdecode = decode
 
 
 def imread(
@@ -140,6 +143,14 @@ def _as_bytes(data: Any) -> bytes:
         return memoryview(data).tobytes()
     except TypeError as exc:
         raise DecodeError("JPEG input must be bytes-like") from exc
+
+
+def _require_bytes_like(data: Any) -> Any:
+    try:
+        memoryview(data)
+    except TypeError as exc:
+        raise DecodeError("JPEG input must be bytes-like") from exc
+    return data
 
 
 def _prepare_image(image: Any, options: EncodeOptions) -> NDArray[Any]:

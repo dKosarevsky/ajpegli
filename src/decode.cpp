@@ -41,6 +41,39 @@ struct BytesView {
   size_t size;
 };
 
+class BufferView {
+ public:
+  explicit BufferView(py::handle data) {
+    if (PyObject_GetBuffer(data.ptr(), &view_, PyBUF_SIMPLE) != 0) {
+      PyErr_Clear();
+      throw std::runtime_error("JPEG input must be a contiguous bytes-like buffer");
+    }
+    acquired_ = true;
+    if (view_.len < 0) {
+      PyBuffer_Release(&view_);
+      acquired_ = false;
+      throw std::runtime_error("JPEG input has invalid size");
+    }
+  }
+
+  BufferView(const BufferView&) = delete;
+  BufferView& operator=(const BufferView&) = delete;
+
+  ~BufferView() {
+    if (acquired_) {
+      PyBuffer_Release(&view_);
+    }
+  }
+
+  const uint8_t* data() const { return static_cast<const uint8_t*>(view_.buf); }
+
+  size_t size() const { return static_cast<size_t>(view_.len); }
+
+ private:
+  Py_buffer view_{};
+  bool acquired_ = false;
+};
+
 struct MemSource {
   const uint8_t* data;
   unsigned long size;
@@ -311,7 +344,7 @@ void ProbeJpegHeader(py::bytes data) {
 }
 
 py::array Decode(
-    py::bytes data,
+    py::object data,
     const std::string& mode,
     const std::string& dtype,
     long max_pixels,
@@ -320,8 +353,8 @@ py::array Decode(
     const std::string& endianness) {
   const DecodeConfig config =
       MakeDecodeConfig(mode, dtype, max_pixels, max_width, max_height, endianness);
-  const BytesView input = GetBytesView(data);
-  return DecodeBuffer(input.data, input.size, config);
+  const BufferView input(data);
+  return DecodeBuffer(input.data(), input.size(), config);
 }
 
 py::array Imread(
