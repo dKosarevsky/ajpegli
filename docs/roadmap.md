@@ -3,6 +3,10 @@
 This repository is intentionally split into small MR-sized branches. Each branch
 must preserve `just check` and keep pytest coverage at or above 98%.
 
+The `1.0.0` scope is the stable JPEG-to-NumPy loader plus a production-ready
+core `encode()` / `info()` API. Wider dtype support, XYB encode, parsed metadata,
+and fuzz/sanitizer expansion remain post-1.0 work.
+
 ## Branch Slices
 
 1. `codex/foundation`
@@ -27,6 +31,7 @@ must preserve `just check` and keep pytest coverage at or above 98%.
 5. `codex/core-encode`
    - `jpegli_mem_dest`, shape/stride validation, uint8 grayscale/RGB encode.
    - Quality validation, alpha policy, contiguous-copy policy.
+   - Status: shipped in `1.0.0` for `uint8` grayscale/RGB input.
 
 6. `codex/dtypes-options`
    - `uint16`, `float32`, `float16`, endianness.
@@ -34,6 +39,8 @@ must preserve `just check` and keep pytest coverage at or above 98%.
 
 7. `codex/metadata-info`
    - ICC read/write, raw EXIF/XMP/COM markers, `info()` header path.
+   - Status: shipped in `1.0.0` for raw marker writing and header-level
+     `JpegInfo`; parsed EXIF metadata remains future work.
 
 8. `codex/wheels-ci-hardening`
    - cibuildwheel matrix, sanitizer jobs, fuzz smoke, wheel dependency checks.

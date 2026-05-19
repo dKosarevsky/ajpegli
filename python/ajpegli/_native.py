@@ -50,7 +50,12 @@ def features() -> dict[str, bool]:
 
 
 def encode(*_args: Any, **_kwargs: Any) -> bytes:
-    raise EncodeError("native jpegli encode is not implemented")
+    if _ext is None:
+        raise EncodeError("native jpegli extension is not available")
+    try:
+        return bytes(_ext.encode(*_args, **_kwargs))
+    except RuntimeError as exc:
+        raise EncodeError(str(exc)) from exc
 
 
 def decode(*_args: Any, **_kwargs: Any) -> Any:

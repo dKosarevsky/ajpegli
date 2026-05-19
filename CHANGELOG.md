@@ -5,7 +5,24 @@ All notable user-facing changes are documented here.
 The project follows semantic versioning for the Python API. The vendored jpegli
 commit is part of each release note because jpegli itself is pinned by commit.
 
-## 0.1.5 - Unreleased
+## 1.0.0 - Unreleased
+
+- Promoted the package metadata from Alpha to Production/Stable.
+- Added native jpegli `encode()` for the stable v1 scope: `uint8` grayscale and
+  RGB NumPy arrays, explicit alpha drop, quality/distance/PSNR controls,
+  progressive levels, subsampling, adaptive quantization, and raw
+  ICC/EXIF/XMP/comment marker writing.
+- Added native `info()` header probing that returns `JpegInfo` without full
+  image decode.
+- Documented the v1 stability contract: documented Python APIs follow SemVer,
+  `_ajpegli` remains private, exact JPEG bitstreams and benchmark throughput are
+  not stability guarantees, and NumPy remains the only runtime dependency.
+- Kept benchmark language factual: checked-in reports are measured baselines,
+  not claims that ajpegli is faster than OpenCV or Pillow.
+
+Vendored jpegli commit: `7cdf212790241868c77dca777dbee14e98128cba`.
+
+## 0.1.5 - 2026-05-19
 
 - Documented the public `ajpegli.decode(data, mode=...)` bytes API in the
   README and DataLoader guide.

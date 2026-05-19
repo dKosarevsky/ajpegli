@@ -4,6 +4,7 @@
 #include <csetjmp>
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <limits>
 #include <memory>
@@ -322,7 +323,95 @@ py::array DecodeStdioFile(FILE* file, const DecodeConfig& config) {
   return DecodeFromSource(file, SetStdioSource, config);
 }
 
-void ProbeJpegHeader(py::bytes data) {
+bool StartsWith(
+    const JOCTET* data,
+    unsigned int size,
+    const uint8_t* prefix,
+    size_t prefix_size) {
+  return size >= prefix_size && std::memcmp(data, prefix, prefix_size) == 0;
+}
+
+std::string HeaderMode(const jpeg_decompress_struct& cinfo) {
+  if (cinfo.num_components == 1 || cinfo.jpeg_color_space == JCS_GRAYSCALE) {
+    return "L";
+  }
+  if (cinfo.num_components == 4 || cinfo.jpeg_color_space == JCS_CMYK ||
+      cinfo.jpeg_color_space == JCS_YCCK) {
+    return "CMYK";
+  }
+  if (cinfo.num_components == 3) {
+    return "RGB";
+  }
+  return "native";
+}
+
+py::object HeaderSubsampling(const jpeg_decompress_struct& cinfo) {
+  if (cinfo.num_components == 1) {
+    return py::str("gray");
+  }
+  if (cinfo.num_components < 3 || cinfo.comp_info == nullptr) {
+    return py::none();
+  }
+  const int h = cinfo.comp_info[0].h_samp_factor;
+  const int v = cinfo.comp_info[0].v_samp_factor;
+  if (h == 1 && v == 1) return py::str("444");
+  if (h == 2 && v == 1) return py::str("422");
+  if (h == 2 && v == 2) return py::str("420");
+  if (h == 1 && v == 2) return py::str("440");
+  return py::none();
+}
+
+py::object HeaderDensity(const jpeg_decompress_struct& cinfo) {
+  if (!cinfo.saw_JFIF_marker || cinfo.X_density == 0 || cinfo.Y_density == 0) {
+    return py::none();
+  }
+  return py::make_tuple(
+      static_cast<int>(cinfo.X_density),
+      static_cast<int>(cinfo.Y_density));
+}
+
+py::object BuildJpegInfo(const jpeg_decompress_struct& cinfo) {
+  constexpr uint8_t kExifPrefix[] = {'E', 'x', 'i', 'f', '\0', '\0'};
+  constexpr uint8_t kIccPrefix[] = {
+      'I', 'C', 'C', '_', 'P', 'R', 'O', 'F', 'I', 'L', 'E', '\0'};
+  constexpr uint8_t kXmpPrefix[] = {
+      'h', 't', 't', 'p', ':', '/', '/', 'n', 's', '.', 'a', 'd', 'o', 'b', 'e',
+      '.', 'c', 'o', 'm', '/', 'x', 'a', 'p', '/', '1', '.', '0', '/', '\0'};
+
+  bool has_icc = false;
+  bool has_exif = false;
+  bool has_xmp = false;
+  for (jpeg_saved_marker_ptr marker = cinfo.marker_list; marker != nullptr;
+       marker = marker->next) {
+    if (marker->marker == JPEG_APP0 + 1) {
+      has_exif = has_exif ||
+                 StartsWith(marker->data, marker->data_length, kExifPrefix,
+                            sizeof(kExifPrefix));
+      has_xmp = has_xmp ||
+                StartsWith(marker->data, marker->data_length, kXmpPrefix,
+                           sizeof(kXmpPrefix));
+    } else if (marker->marker == JPEG_APP0 + 2) {
+      has_icc = has_icc ||
+                StartsWith(marker->data, marker->data_length, kIccPrefix,
+                           sizeof(kIccPrefix));
+    }
+  }
+
+  py::object jpeg_info = py::module_::import("ajpegli.metadata").attr("JpegInfo");
+  return jpeg_info(
+      py::arg("width") = static_cast<int>(cinfo.image_width),
+      py::arg("height") = static_cast<int>(cinfo.image_height),
+      py::arg("components") = cinfo.num_components,
+      py::arg("mode") = HeaderMode(cinfo),
+      py::arg("progressive") = static_cast<bool>(cinfo.progressive_mode),
+      py::arg("subsampling") = HeaderSubsampling(cinfo),
+      py::arg("density") = HeaderDensity(cinfo),
+      py::arg("has_icc_profile") = has_icc,
+      py::arg("has_exif") = has_exif,
+      py::arg("has_xmp") = has_xmp);
+}
+
+py::object ReadJpegInfo(py::bytes data) {
   const BytesView input = GetBytesView(data);
   ValidateInputSize(input.size);
   jpeg_decompress_struct cinfo{};
@@ -339,8 +428,12 @@ void ProbeJpegHeader(py::bytes data) {
       &cinfo,
       reinterpret_cast<const unsigned char*>(input.data),
       static_cast<unsigned long>(input.size));
+  jpegli_save_markers(&cinfo, JPEG_APP0 + 1, 0xFFFF);
+  jpegli_save_markers(&cinfo, JPEG_APP0 + 2, 0xFFFF);
   jpegli_read_header(&cinfo, TRUE);
+  py::object info = BuildJpegInfo(cinfo);
   jpegli_destroy_decompress(&cinfo);
+  return info;
 }
 
 py::array Decode(
@@ -410,8 +503,7 @@ py::array ImreadStdio(
 }
 
 py::object Info(py::bytes data) {
-  ProbeJpegHeader(data);
-  throw std::runtime_error("jpegli info output is not implemented");
+  return ReadJpegInfo(data);
 }
 
 }  // namespace

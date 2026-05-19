@@ -35,7 +35,7 @@ def test_features_returns_stable_boolean_map() -> None:
         "icc": False,
         "exif": False,
         "xyb": False,
-        "progressive": False,
+        "progressive": True,
     }
     feature_map["uint16"] = True
     assert ajpegli.features()["uint16"] is False
@@ -73,8 +73,12 @@ def test_encode_rejects_alpha_without_explicit_drop(rgba_uint8: NDArray[np.uint8
 
 
 def test_encode_drops_alpha_when_requested(rgba_uint8: NDArray[np.uint8]) -> None:
-    with pytest.raises(ajpegli.EncodeError, match="native jpegli encode is not implemented"):
-        ajpegli.encode(rgba_uint8, alpha="drop")
+    jpeg = ajpegli.encode(rgba_uint8, alpha="drop", progressive=0)
+    decoded = ajpegli.decode(jpeg, mode="RGB")
+
+    assert jpeg.startswith(b"\xff\xd8")
+    assert decoded.dtype == np.uint8
+    assert decoded.shape == (*rgba_uint8.shape[:2], 3)
 
 
 def test_encode_rejects_non_numpy_input() -> None:
@@ -86,8 +90,11 @@ def test_encode_accepts_non_contiguous_input_when_copy_allowed(
     rgb_uint8: NDArray[np.uint8],
 ) -> None:
     transposed = np.swapaxes(rgb_uint8, 0, 1)
-    with pytest.raises(ajpegli.EncodeError, match="native jpegli encode is not implemented"):
-        ajpegli.encode(transposed, allow_copy=True)
+    jpeg = ajpegli.encode(transposed, allow_copy=True, progressive=0)
+    decoded = ajpegli.decode(jpeg, mode="RGB")
+
+    assert jpeg.startswith(b"\xff\xd8")
+    assert decoded.shape == transposed.shape
 
 
 def test_encode_rejects_non_contiguous_input_when_copy_forbidden(
@@ -104,6 +111,13 @@ def test_encode_rejects_non_contiguous_input_when_copy_forbidden(
 def test_info_invalid_input_raises_decode_error(invalid_jpeg_bytes: bytes) -> None:
     with pytest.raises(ajpegli.DecodeError, match="jpegli decode failed"):
         ajpegli.info(invalid_jpeg_bytes)
+
+
+def test_encode_rejects_unsupported_dtype() -> None:
+    image = np.zeros((2, 3, 3), dtype=np.uint16)
+
+    with pytest.raises(ajpegli.EncodeError, match="only uint8 encode is implemented"):
+        ajpegli.encode(image)
 
 
 def test_module_cli_info_without_args_exits_cleanly() -> None:
@@ -150,10 +164,15 @@ def test_native_fallback_paths_are_stable(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert native.native_available() is False
     assert native.jpegli_linked() is False
+    assert native.native_version() == "unbuilt"
     assert native.jpegli_commit() == "unvendored"
     assert native.features()["uint16"] is False
+    with pytest.raises(ajpegli.EncodeError, match="native jpegli extension is not available"):
+        native.encode(np.zeros((1, 1, 3), dtype=np.uint8))
     with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
         native.decode(b"not a jpeg")
+    with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
+        native.imread("missing.jpg")
     with pytest.raises(ajpegli.DecodeError, match="native jpegli extension is not available"):
         native.info(b"not a jpeg")
 

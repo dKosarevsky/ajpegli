@@ -14,10 +14,10 @@ and built for high-throughput data pipelines. The path API is `cv2.imread`-like,
 but it is not a drop-in OpenCV replacement: color images are returned as RGB by
 default. Pass `mode="BGR"` for OpenCV-style pipelines.
 
-Current status: Alpha. The release focus is `imread()` / `imdecode()` JPEG
-loading with a small runtime dependency footprint. Benchmarks are published as
-regression baselines, not as claims that `ajpegli` is faster than OpenCV or
-Pillow.
+Current status: stable Python API. `imread()` and `imdecode()` are the primary
+loading APIs, with `encode()` and `info()` available for production use in the
+documented v1 scope. Benchmarks are published as measured regression baselines,
+not as claims that `ajpegli` is faster than OpenCV or Pillow.
 
 ## Development
 
@@ -71,14 +71,19 @@ with open("image.jpg", "rb") as file:
 
 rgb_from_memory = ajpegli.imdecode(data, mode="RGB")
 bgr_from_memory = ajpegli.imdecode(data, mode="BGR")
+
+jpeg = ajpegli.encode(rgb_from_memory, quality=90, progressive=2)
+header = ajpegli.info(jpeg)
+assert header.width == rgb_from_memory.shape[1]
 ```
 
 `imread()` reads the file in the native extension and returns a NumPy array.
 `imdecode()` accepts JPEG `bytes` or another bytes-like object and decodes from
 memory with the same mode options. `decode()` is kept as an equivalent alias.
-The first decode slice supports `uint8` RGB, BGR, and grayscale output. File
-I/O and jpegli decode work release the GIL so threaded callers and DataLoader
-workers do not serialize on Python while the native codec is running.
+The v1 decode API supports `uint8` RGB, BGR, grayscale, CMYK, and native output
+modes. File I/O and jpegli decode work release the GIL so threaded callers and
+DataLoader workers do not serialize on Python while the native codec is
+running.
 
 ## RAM / bytes decode
 
@@ -101,8 +106,31 @@ making a Python-side copy before entering the native decoder.
 NumPy is the only runtime dependency. OpenCV, Pillow, and PyTorch are optional
 benchmark tools and are not required by `pip install ajpegli`.
 
-`encode()` and full `info()` metadata output are still planned API surface, not
-the release focus yet.
+## Encode and Info
+
+`encode()` writes JPEG bytes from `uint8` NumPy arrays. The stable v1 encode
+scope is grayscale (`HxW` or `HxWx1`) and RGB (`HxWx3`) input with explicit
+alpha rejection unless `alpha="drop"` is passed. It supports quality,
+distance/PSNR controls, progressive level, RGB subsampling, adaptive
+quantization, and raw ICC/EXIF/XMP/comment marker writing. `info()` reads JPEG
+headers without full image decode and returns `JpegInfo` dimensions, component
+count, mode, progressive flag, subsampling, density, and ICC/EXIF/XMP presence.
+
+Unsupported paths fail explicitly instead of silently changing data. `uint16`,
+`float32`, `float16`, CMYK encode, XYB encode, and parsed EXIF metadata are
+outside the v1 stable scope.
+
+## Stability Contract
+
+Starting with `1.0.0`, ajpegli follows SemVer for the documented Python API.
+Function names, keyword names, default values, exception classes, and return
+types documented in this README are stable across `1.x`. The private
+`ajpegli._ajpegli` extension module is not public API.
+
+The exact JPEG bitstream produced by `encode()` and benchmark throughput are
+not part of the stability contract: both can change when the pinned jpegli
+commit changes. Runtime dependencies stay limited to NumPy throughout `1.x`
+unless a future major version changes that contract.
 
 For local source builds, clone with submodules:
 

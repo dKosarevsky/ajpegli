@@ -62,6 +62,19 @@ def test_decode_returns_numpy_array_from_bytes() -> None:
     assert image.shape == (1, 1, 3)
 
 
+def test_info_reads_header_from_bytes() -> None:
+    info = ajpegli.info(COLOR_JPEG.read_bytes())
+
+    assert isinstance(info, ajpegli.JpegInfo)
+    assert info.width == 201
+    assert info.height == 243
+    assert info.components == 3
+    assert info.mode == "RGB"
+    assert isinstance(info.progressive, bool)
+    assert info.subsampling in {"444", "422", "420", "440", None}
+    assert info.density is None or len(info.density) == 2
+
+
 def test_imdecode_returns_numpy_array_from_bytes() -> None:
     image = ajpegli.imdecode(SAMPLE_JPEG.read_bytes(), mode="RGB")
 
