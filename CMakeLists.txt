@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(ajpegli VERSION 0.1.5 LANGUAGES C CXX)
+project(ajpegli VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -59,6 +59,7 @@ add_subdirectory("${AJPEGLI_JPEGLI_DIR}" EXCLUDE_FROM_ALL)
 pybind11_add_module(_ajpegli MODULE
   src/bindings.cpp
   src/decode.cpp
+  src/encode.cpp
   src/error_mgr.cpp
 )
 target_include_directories(_ajpegli PRIVATE "${AJPEGLI_JPEGLI_DIR}")

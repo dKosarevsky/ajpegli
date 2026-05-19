@@ -5,6 +5,7 @@
 namespace py = pybind11;
 
 namespace ajpegli {
+void BindEncode(py::module_& m);
 void BindDecode(py::module_& m);
 }
 
@@ -19,6 +20,7 @@ PYBIND11_MODULE(_ajpegli, m) {
   m.def("native_version", []() { return AJPEGLI_VERSION; });
   m.def("jpegli_commit", []() { return AJPEGLI_JPEGLI_COMMIT; });
   m.def("jpegli_linked", &JpegliLinked);
+  ajpegli::BindEncode(m);
   ajpegli::BindDecode(m);
   m.def("features", []() {
     py::dict features;
@@ -28,7 +30,7 @@ PYBIND11_MODULE(_ajpegli, m) {
     features["icc"] = false;
     features["exif"] = false;
     features["xyb"] = false;
-    features["progressive"] = false;
+    features["progressive"] = true;
     return features;
   });
 }
