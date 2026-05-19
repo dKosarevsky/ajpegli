@@ -174,3 +174,40 @@ These rows are a sanity check, not a cross-platform claim. They show that start
 method can dominate RAM-backed DataLoader throughput; Linux `fork` and
 macOS/Windows `spawn` should be reported separately in any release-grade
 benchmark.
+
+## CID22 Validation Set, Bytes Source
+
+This run uses the Cloudinary Image Dataset '22 validation set as an external
+manual benchmark. The full validation archive contains multiple codecs and file
+formats; this DataLoader run extracts only the `mozjpeg/*.jpg` files and
+preloads JPEG bytes before timing starts.
+
+- Date: 2026-05-19
+- ajpegli: 0.1.5
+- Python: 3.13.7
+- NumPy: 2.4.5
+- PyTorch: 2.12.0
+- Dataset: CID22 validation set
+- Dataset URL: <https://cloudinary.com/labs/cid22>
+- Dataset license: CC BY-SA 4.0
+- JPEG files: 536
+- Mode: RGB
+- Source: bytes
+- Iterations: 1000
+- Batch size: 64
+- Warmup: 3
+
+Each `Dataset.__getitem__` call decodes preloaded JPEG bytes with
+`ajpegli.imdecode(data, mode="RGB")`.
+
+| DataLoader workers | Images/s | MPix/s | Seconds |
+| ---: | ---: | ---: | ---: |
+| 0 | 570.0 | 149.4 | 1.754 |
+| 2 | 377.9 | 99.1 | 2.646 |
+| 4 | 266.3 | 69.8 | 3.755 |
+| 8 | 147.3 | 38.6 | 6.790 |
+
+On this macOS/Python 3.13 run, `num_workers=0` is fastest. Extra worker
+processes reduce throughput substantially, so the recommendation remains to
+tune DataLoader workers on the target training host instead of assuming that
+more workers improve preloaded JPEG decode throughput.
