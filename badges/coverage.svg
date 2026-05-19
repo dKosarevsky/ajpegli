@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="118" height="20" role="img" aria-label="coverage: 98.02%">
-  <title>coverage: 98.02%</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="118" height="20" role="img" aria-label="coverage: 98.34%">
+  <title>coverage: 98.34%</title>
   <linearGradient id="s" x2="0" y2="100%">
     <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
     <stop offset="1" stop-opacity=".1"/>
@@ -15,7 +15,7 @@
   <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
     <text x="330" y="150" aria-hidden="true" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="560">coverage</text>
     <text x="330" y="140" transform="scale(.1)" textLength="560">coverage</text>
-    <text x="920" y="150" aria-hidden="true" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="420">98.02%</text>
-    <text x="920" y="140" transform="scale(.1)" textLength="420">98.02%</text>
+    <text x="920" y="150" aria-hidden="true" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="420">98.34%</text>
+    <text x="920" y="140" transform="scale(.1)" textLength="420">98.34%</text>
   </g>
 </svg>
