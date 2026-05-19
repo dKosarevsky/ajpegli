@@ -68,7 +68,7 @@ def test_encode_rejects_alpha_without_explicit_drop(rgba_uint8: NDArray[np.uint8
 
 
 def test_encode_drops_alpha_when_requested(rgba_uint8: NDArray[np.uint8]) -> None:
-    with pytest.raises(ajpegli.EncodeError, match="native jpegli extension is not available"):
+    with pytest.raises(ajpegli.EncodeError, match="native jpegli encode is not implemented"):
         ajpegli.encode(rgba_uint8, alpha="drop")
 
 
@@ -81,7 +81,7 @@ def test_encode_accepts_non_contiguous_input_when_copy_allowed(
     rgb_uint8: NDArray[np.uint8],
 ) -> None:
     transposed = np.swapaxes(rgb_uint8, 0, 1)
-    with pytest.raises(ajpegli.EncodeError, match="native jpegli extension is not available"):
+    with pytest.raises(ajpegli.EncodeError, match="native jpegli encode is not implemented"):
         ajpegli.encode(transposed, allow_copy=True)
 
 
