@@ -8,6 +8,7 @@ import pytest
 from benchmarks.bench_imread import (
     _bench_reader,
     _non_negative_int,
+    _parse_args,
     _parse_codecs,
     _positive_int,
     _throughput_result,
@@ -61,3 +62,15 @@ def test_non_negative_int_accepts_zero_for_dataloader_workers() -> None:
 
     with pytest.raises(argparse.ArgumentTypeError):
         _non_negative_int("-1")
+
+
+def test_parse_args_accepts_explicit_thread_workers() -> None:
+    args = _parse_args(["image.jpg", "--thread-workers", "7"])
+
+    assert args.thread_workers == 7
+
+
+def test_parse_args_keeps_workers_as_thread_workers_alias() -> None:
+    args = _parse_args(["image.jpg", "--workers", "5"])
+
+    assert args.thread_workers == 5

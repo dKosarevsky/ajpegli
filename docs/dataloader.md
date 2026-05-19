@@ -49,7 +49,7 @@ just bench-imread-dataloader path/to/small/*.jpg 1000 4 RGB 32
 uv run python benchmarks/bench_imread.py path/to/medium/*.jpg \
   --mode RGB \
   --iterations 2000 \
-  --workers 8 \
+  --thread-workers 8 \
   --dataloader-workers 8 \
   --codecs ajpegli \
   --include-dataloader \

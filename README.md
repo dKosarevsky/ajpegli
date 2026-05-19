@@ -98,6 +98,8 @@ just bench-imread-dataloader path/to/a.jpg 1000 4 RGB 32
 `benchmarks/bench_imread.py` reports JSON with sequential throughput, threaded
 throughput, and optional PyTorch `DataLoader` throughput. Missing optional
 comparison packages are reported as skipped entries instead of failing the run.
+Use `--thread-workers` for threaded reader throughput and
+`--dataloader-workers` for PyTorch `DataLoader` worker count.
 The checked-in smoke reports are intentionally narrow; broader dataset reports
 are still required before making project-level speed claims against OpenCV or
 Pillow.

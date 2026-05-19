@@ -30,6 +30,12 @@ def jpegli_linked() -> bool:
     return _ext is not None and bool(getattr(_ext, "jpegli_linked", lambda: False)())
 
 
+def native_version() -> str:
+    if _ext is None:
+        return "unbuilt"
+    return str(_ext.native_version())
+
+
 def jpegli_commit() -> str:
     if _ext is None:
         return "unvendored"

@@ -5,6 +5,22 @@ All notable user-facing changes are documented here.
 The project follows semantic versioning for the Python API. The vendored jpegli
 commit is part of each release note because jpegli itself is pinned by commit.
 
+## 0.1.4 - Unreleased
+
+- Added version consistency checks for Python package metadata, CMake
+  `PROJECT_VERSION`, and the native extension version.
+- Added explicit `--thread-workers` benchmark CLI naming while keeping
+  `--workers` as a compatibility alias.
+
+Vendored jpegli commit: `7cdf212790241868c77dca777dbee14e98128cba`.
+
+## 0.1.3 - 2026-05-19
+
+- Published README installation polish and benchmark documentation updates.
+- Published reproducible smoke benchmark and DataLoader baseline reports.
+
+Vendored jpegli commit: `7cdf212790241868c77dca777dbee14e98128cba`.
+
 ## 0.1.0 - 2026-05-18
 
 Initial alpha release focused on fast JPEG-to-NumPy loading.

@@ -31,7 +31,7 @@ uv run python benchmarks/bench_imread.py \
   third_party/jpegli/testdata/jxl/flower/flower_cropped.jpg \
   --mode RGB \
   --iterations 256 \
-  --workers 4 \
+  --thread-workers 4 \
   --dataloader-workers N \
   --warmup 3 \
   --codecs ajpegli \
