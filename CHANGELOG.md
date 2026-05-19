@@ -9,8 +9,12 @@ commit is part of each release note because jpegli itself is pinned by commit.
 
 - Documented the public `ajpegli.decode(data, mode=...)` bytes API in the
   README and DataLoader guide.
+- Added `ajpegli.imdecode(data, mode=...)` as an OpenCV-style alias for
+  in-memory JPEG decode.
+- Removed Python-side byte copying for `bytearray`, `memoryview`, and other
+  buffer-protocol inputs passed to `decode()` / `imdecode()`.
 - Added benchmark `--source path|bytes` support so RAM-backed runs can preload
-  JPEG bytes once and time `ajpegli.decode`, `cv2.imdecode`, and Pillow
+  JPEG bytes once and time `ajpegli.imdecode`, `cv2.imdecode`, and Pillow
   `BytesIO` decode paths.
 - Added bytes-backed PyTorch `DataLoader` benchmark support for preloaded JPEG
   samples.

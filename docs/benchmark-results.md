@@ -127,6 +127,42 @@ OpenCV is still faster in every measured mode. `ajpegli` threaded BGR is roughly
 at Pillow parity on this corpus, but that is not enough for a project-level
 performance claim.
 
+## Vendored Mixed Corpus, Bytes Source
+
+This run uses the same vendored mixed corpus as above, but with
+`--source bytes`. Each JPEG is read into memory before timing starts. `ajpegli`
+uses `ajpegli.imdecode(data, mode=...)`, OpenCV uses
+`cv2.imdecode(np.frombuffer(data, np.uint8), ...)`, and Pillow decodes from
+`BytesIO`.
+
+- Date: 2026-05-19
+- ajpegli: 0.1.5
+- Python: 3.13.7
+- NumPy: 2.4.5
+- OpenCV: 4.13.0
+- Pillow: 12.2.0
+- Images: 20
+- Source: bytes
+- Iterations: 200
+- Warmup: 3
+- Threaded workers: 4
+
+| Mode | Codec | Sequential img/s | Sequential MPix/s | p50 ms | p95 ms | Threaded img/s | Threaded MPix/s |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| RGB | ajpegli | 77.1 | 20.9 | 14.74 | 29.85 | 325.2 | 88.2 |
+| RGB | cv2 | 140.6 | 38.1 | 8.21 | 17.51 | 529.9 | 143.8 |
+| RGB | pillow | 115.8 | 31.4 | 10.57 | 21.47 | 370.2 | 100.5 |
+| BGR | ajpegli | 85.6 | 23.2 | 14.44 | 26.80 | 312.4 | 84.8 |
+| BGR | cv2 | 130.6 | 35.4 | 8.36 | 20.25 | 537.4 | 145.8 |
+| BGR | pillow | 116.3 | 31.5 | 10.60 | 21.61 | 374.8 | 101.7 |
+| L | ajpegli | 103.8 | 28.2 | 11.03 | 23.28 | 405.7 | 110.1 |
+| L | cv2 | 148.0 | 40.2 | 6.54 | 19.94 | 591.1 | 160.4 |
+| L | pillow | 112.1 | 30.4 | 9.92 | 21.92 | 456.4 | 123.8 |
+
+These bytes-source smoke numbers still do not support a claim that `ajpegli` is
+faster than OpenCV or Pillow. They are useful as a RAM-backed regression
+baseline and avoid mixing codec throughput with storage differences.
+
 ## Native Source Path Check
 
 This run compares the public `ajpegli.imread()` path against an internal

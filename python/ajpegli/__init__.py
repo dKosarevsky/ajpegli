@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ._version import __jpegli_commit__, __version__, features, jpegli_commit
-from .api import decode, encode, imread, info
+from .api import decode, encode, imdecode, imread, info
 from .errors import (
     AjpegliError,
     DecodeError,
@@ -33,6 +33,7 @@ __all__ = [
     "decode",
     "encode",
     "features",
+    "imdecode",
     "imread",
     "info",
     "jpegli_commit",

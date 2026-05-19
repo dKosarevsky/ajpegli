@@ -56,7 +56,7 @@ class AjpegliDataset:
     def __getitem__(self, index: int) -> np.ndarray[Any, np.dtype[np.uint8]]:
         sample = self.samples[index % len(self.samples)]
         if self.source == "bytes":
-            return ajpegli.decode(sample.data, mode=self.mode)
+            return ajpegli.imdecode(sample.data, mode=self.mode)
         return ajpegli.imread(sample.path, mode=self.mode)
 
 
@@ -188,7 +188,7 @@ def _make_ajpegli_reader(mode: str) -> Reader:
 
 def _make_ajpegli_bytes_reader(mode: str) -> Reader:
     def read(sample: DecodeSample) -> tuple[int, ...]:
-        return tuple(ajpegli.decode(sample.data, mode=mode).shape)
+        return tuple(ajpegli.imdecode(sample.data, mode=mode).shape)
 
     return read
 

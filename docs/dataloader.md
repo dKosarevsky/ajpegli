@@ -1,7 +1,7 @@
 # DataLoader Benchmarking
 
 `ajpegli.imread(path)` maps a file path to a NumPy array, and
-`ajpegli.decode(data)` maps preloaded JPEG bytes to a NumPy array. The native
+`ajpegli.imdecode(data)` maps preloaded JPEG bytes to a NumPy array. The native
 decode path releases the GIL, but DataLoader throughput still depends on
 storage, process startup, batch size, and image sizes. Measure it on the target
 machine before making speed claims.
@@ -51,7 +51,7 @@ class InMemoryJpegDataset:
         return len(self.samples)
 
     def __getitem__(self, index: int):
-        return ajpegli.decode(self.samples[index], mode=self.mode)
+        return ajpegli.imdecode(self.samples[index], mode=self.mode)
 ```
 
 ## Worker Matrix
