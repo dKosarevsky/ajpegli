@@ -62,6 +62,15 @@ def test_decode_returns_numpy_array_from_bytes() -> None:
     assert image.shape == (1, 1, 3)
 
 
+def test_imdecode_returns_numpy_array_from_bytes() -> None:
+    image = ajpegli.imdecode(SAMPLE_JPEG.read_bytes(), mode="RGB")
+
+    assert isinstance(image, np.ndarray)
+    assert image.dtype == np.uint8
+    assert image.shape == (1, 1, 3)
+    assert image.flags.c_contiguous
+
+
 @pytest.mark.parametrize(
     "factory",
     [
@@ -72,6 +81,23 @@ def test_decode_returns_numpy_array_from_bytes() -> None:
 )
 def test_decode_accepts_bytes_like_buffers(factory) -> None:
     image = ajpegli.decode(factory(SAMPLE_JPEG.read_bytes()))
+
+    assert isinstance(image, np.ndarray)
+    assert image.dtype == np.uint8
+    assert image.shape == (1, 1, 3)
+    assert image.flags.c_contiguous
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
+        pytest.param(bytearray, id="bytearray"),
+        pytest.param(memoryview, id="memoryview"),
+        pytest.param(lambda data: np.frombuffer(data, dtype=np.uint8), id="ndarray"),
+    ],
+)
+def test_imdecode_accepts_bytes_like_buffers(factory) -> None:
+    image = ajpegli.imdecode(factory(SAMPLE_JPEG.read_bytes()), mode="RGB")
 
     assert isinstance(image, np.ndarray)
     assert image.dtype == np.uint8
@@ -91,6 +117,24 @@ def test_decode_bytes_supports_bgr_and_grayscale_modes(
     expected_shape: tuple[int, ...],
 ) -> None:
     image = ajpegli.decode(COLOR_JPEG.read_bytes(), mode=mode)
+
+    assert image.dtype == np.uint8
+    assert image.shape == expected_shape
+    assert image.flags.c_contiguous
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected_shape"),
+    [
+        ("BGR", (243, 201, 3)),
+        ("L", (243, 201)),
+    ],
+)
+def test_imdecode_bytes_supports_bgr_and_grayscale_modes(
+    mode: str,
+    expected_shape: tuple[int, ...],
+) -> None:
+    image = ajpegli.imdecode(COLOR_JPEG.read_bytes(), mode=mode)
 
     assert image.dtype == np.uint8
     assert image.shape == expected_shape
