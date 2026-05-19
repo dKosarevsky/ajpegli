@@ -4,9 +4,9 @@
 reproducible run. The benchmark runner emits JSON so results can be checked into
 release notes without depending on optional packages at runtime.
 
-Initial smoke numbers are published in
-[Benchmark Results](benchmark-results.md). They are intentionally narrow and
-should not be treated as a full performance claim.
+Smoke and RAM-backed matrix numbers are published in
+[Benchmark Results](benchmark-results.md). They are regression baselines and
+should not be treated as broad production performance claims.
 
 ## Setup
 
@@ -79,6 +79,23 @@ In bytes mode, the runner reads each JPEG file into memory once before timing.
 `BytesIO` object. The `ajpegli-stdio` codec is path-only and is reported as
 skipped for `--source bytes`.
 
+For the release-grade RAM matrix, run every dataset group with every output
+mode:
+
+```bash
+for mode in RGB BGR L; do
+  uv run python benchmarks/bench_imread.py path/to/small/*.jpg \
+    --mode "$mode" --source bytes --iterations 1000 \
+    --thread-workers 8 --codecs ajpegli,cv2,pillow
+  uv run python benchmarks/bench_imread.py path/to/medium/*.jpg \
+    --mode "$mode" --source bytes --iterations 1000 \
+    --thread-workers 8 --codecs ajpegli,cv2,pillow
+  uv run python benchmarks/bench_imread.py path/to/large/*.jpg \
+    --mode "$mode" --source bytes --iterations 200 \
+    --thread-workers 8 --codecs ajpegli,cv2,pillow
+done
+```
+
 The JSON output includes:
 
 - `images_per_second`: decoded images per second.
@@ -92,6 +109,20 @@ The JSON output includes:
 
 Keep the raw JSON output with the release artifacts when publishing benchmark
 claims.
+
+## Hot Path Follow-Up
+
+If `ajpegli` trails OpenCV or Pillow on the target data, profile before changing
+the native code. Start with:
+
+- tiny JPEG overhead: Python wrapper + NumPy allocation + buffer acquisition.
+- native decode time: jpegli header/read/finish time inside the GIL-released
+  section.
+- output mode cost: RGB vs BGR vs grayscale.
+- scanline batch size: compare 16, 32, and 64 rows per `jpegli_read_scanlines`
+  call.
+- source path: compare `imread(path)` and `imdecode(path.read_bytes())` before
+  blaming disk I/O.
 
 ## Interpreting Results
 

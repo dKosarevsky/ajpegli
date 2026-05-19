@@ -163,6 +163,57 @@ These bytes-source smoke numbers still do not support a claim that `ajpegli` is
 faster than OpenCV or Pillow. They are useful as a RAM-backed regression
 baseline and avoid mixing codec throughput with storage differences.
 
+## RAM Dataset Matrix
+
+This run expands the RAM-backed `--source bytes` comparison beyond one mixed
+corpus. Files are still vendored smoke fixtures, not a representative production
+dataset, but the split makes size sensitivity visible.
+
+- Date: 2026-05-19
+- ajpegli: 0.1.5
+- Python: 3.13.7
+- NumPy: 2.4.5
+- OpenCV: 4.13.0
+- Pillow: 12.2.0
+- Source: bytes
+- Threaded workers: 4
+
+Datasets:
+
+| Dataset | Files | Examples | Iterations |
+| --- | ---: | --- | ---: |
+| small fixtures | 3 | `sideways_bench.jpg`, `flower_small.q85_*` | 600 |
+| medium | 2 | `bicycles_restarts.jpg`, `flower_cropped.jpg` | 240 |
+| large | 4 | full-size `flower.png.im_q85_*` JPEGs | 80 |
+| mixed | 9 | small fixtures + medium + large | 240 |
+
+Throughput is reported as sequential images/s followed by 4-thread images/s.
+
+| Dataset | Mode | ajpegli | cv2 | pillow |
+| --- | --- | ---: | ---: | ---: |
+| small fixtures | RGB | 867.8 / 3165.6 | 1482.8 / 5691.7 | 1230.6 / 4085.3 |
+| small fixtures | BGR | 891.9 / 3365.2 | 1526.2 / 5718.9 | 1243.5 / 4052.2 |
+| small fixtures | L | 1063.1 / 3923.8 | 1904.7 / 7164.9 | 1330.1 / 4619.4 |
+| medium | RGB | 274.7 / 1031.3 | 461.9 / 1771.3 | 370.9 / 1215.2 |
+| medium | BGR | 277.0 / 1034.8 | 466.2 / 1776.1 | 372.9 / 1256.0 |
+| medium | L | 343.0 / 1224.8 | 558.1 / 2152.7 | 404.5 / 1496.1 |
+| large | RGB | 46.3 / 174.5 | 69.6 / 260.7 | 59.5 / 191.9 |
+| large | BGR | 45.6 / 171.5 | 69.3 / 260.3 | 57.3 / 184.3 |
+| large | L | 52.5 / 197.5 | 75.6 / 282.7 | 64.4 / 238.3 |
+| mixed | RGB | 93.7 / 358.3 | 143.4 / 545.9 | 119.0 / 399.9 |
+| mixed | BGR | 92.3 / 353.2 | 142.7 / 543.1 | 120.7 / 405.9 |
+| mixed | L | 107.7 / 406.8 | 157.5 / 596.0 | 131.6 / 491.4 |
+
+Latency checks tell the same story. For small RGB JPEGs, `ajpegli` p50 is
+1.26 ms versus OpenCV 0.73 ms and Pillow 0.90 ms. For large RGB JPEGs,
+`ajpegli` p50 is 22.72 ms versus OpenCV 14.32 ms and Pillow 16.62 ms. On the
+mixed RGB set, `ajpegli` p50 is 4.61 ms versus OpenCV 2.80 ms and Pillow
+3.47 ms.
+
+The actionable conclusion is that RAM preload alone does not make `ajpegli`
+competitive with OpenCV/Pillow on these corpora. Future speed work should focus
+on the native decode/output path, not disk I/O.
+
 ## Native Source Path Check
 
 This run compares the public `ajpegli.imread()` path against an internal
