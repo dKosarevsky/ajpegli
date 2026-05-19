@@ -56,6 +56,11 @@ uv run python benchmarks/bench_imread.py path/to/small/*.jpg \
   --codecs ajpegli,cv2,pillow
 ```
 
+For native path investigation, `ajpegli-stdio` is an internal benchmark codec
+that reads paths with `jpegli_stdio_src(FILE*)` instead of the public
+`ajpegli.imread()` path, which reads into memory and decodes with
+`jpegli_mem_src`.
+
 The JSON output includes:
 
 - `images_per_second`: decoded images per second.

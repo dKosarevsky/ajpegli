@@ -16,7 +16,7 @@ import numpy as np
 
 Reader = Callable[[Path], tuple[int, ...]]
 Timer = Callable[[], float]
-SUPPORTED_CODECS = ("ajpegli", "cv2", "pillow")
+SUPPORTED_CODECS = ("ajpegli", "ajpegli-stdio", "cv2", "pillow")
 SUPPORTED_MODES = ("RGB", "BGR", "L")
 MIN_IMAGE_SHAPE_DIMS = 2
 
@@ -158,6 +158,24 @@ def _make_ajpegli_reader(mode: str) -> Reader:
     return read
 
 
+def _make_ajpegli_stdio_reader(mode: str) -> Reader:
+    native = importlib.import_module("ajpegli._ajpegli")
+
+    def read(path: Path) -> tuple[int, ...]:
+        image = native.imread_stdio(
+            str(path),
+            mode=mode,
+            dtype="uint8",
+            max_pixels=256_000_000,
+            max_width=65_535,
+            max_height=65_535,
+            endianness="native",
+        )
+        return tuple(image.shape)
+
+    return read
+
+
 def _make_cv2_reader(mode: str) -> Reader:
     cv2 = importlib.import_module("cv2")
 
@@ -197,6 +215,7 @@ def _resolve_codecs(
     skipped: dict[str, dict[str, str]] = {}
     factories: dict[str, Callable[[str], Reader]] = {
         "ajpegli": _make_ajpegli_reader,
+        "ajpegli-stdio": _make_ajpegli_stdio_reader,
         "cv2": _make_cv2_reader,
         "pillow": _make_pillow_reader,
     }

@@ -16,7 +16,12 @@ from benchmarks.bench_imread import (
 
 
 def test_parse_codecs_trims_and_rejects_empty_values() -> None:
-    assert _parse_codecs("ajpegli, cv2,pillow") == ["ajpegli", "cv2", "pillow"]
+    assert _parse_codecs("ajpegli, ajpegli-stdio, cv2,pillow") == [
+        "ajpegli",
+        "ajpegli-stdio",
+        "cv2",
+        "pillow",
+    ]
 
     with pytest.raises(argparse.ArgumentTypeError):
         _parse_codecs("ajpegli,,cv2")

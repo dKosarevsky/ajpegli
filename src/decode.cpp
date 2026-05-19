@@ -2,6 +2,7 @@
 #include <pybind11/pybind11.h>
 
 #include <csetjmp>
+#include <cstdio>
 #include <cstdint>
 #include <fstream>
 #include <limits>
@@ -38,6 +39,11 @@ struct GilState {
 struct BytesView {
   const uint8_t* data;
   size_t size;
+};
+
+struct MemSource {
+  const uint8_t* data;
+  unsigned long size;
 };
 
 class FileReadError : public std::runtime_error {
@@ -167,9 +173,33 @@ void ValidateInputSize(size_t size) {
   }
 }
 
-py::array DecodeBuffer(const uint8_t* data, size_t size, const DecodeConfig& config) {
+using SourceInitializer = void (*)(jpeg_decompress_struct*, void*);
+
+void SetMemSource(jpeg_decompress_struct* cinfo, void* source) {
+  const auto* input = static_cast<const MemSource*>(source);
+  jpegli_mem_src(
+      cinfo,
+      reinterpret_cast<const unsigned char*>(input->data),
+      input->size);
+}
+
+void SetStdioSource(jpeg_decompress_struct* cinfo, void* source) {
+  jpegli_stdio_src(cinfo, static_cast<FILE*>(source));
+}
+
+FILE* OpenFile(const std::string& path) {
+  FILE* file = std::fopen(path.c_str(), "rb");
+  if (file == nullptr) {
+    throw FileReadError(path, "failed to open JPEG file: " + path);
+  }
+  return file;
+}
+
+py::array DecodeFromSource(
+    void* source,
+    SourceInitializer source_initializer,
+    const DecodeConfig& config) {
   ValidateOptions(config);
-  ValidateInputSize(size);
   jpeg_decompress_struct cinfo{};
   ErrorManager err{};
   cinfo.err = SetupErrorManager(&err);
@@ -181,10 +211,7 @@ py::array DecodeBuffer(const uint8_t* data, size_t size, const DecodeConfig& con
 
   ReleaseGil(gil.get());
   jpegli_create_decompress(&cinfo);
-  jpegli_mem_src(
-      &cinfo,
-      reinterpret_cast<const unsigned char*>(data),
-      static_cast<unsigned long>(size));
+  source_initializer(&cinfo, source);
   jpegli_read_header(&cinfo, TRUE);
   RestoreGil(gil.get());
 
@@ -249,6 +276,19 @@ py::array DecodeBuffer(const uint8_t* data, size_t size, const DecodeConfig& con
   return output;
 }
 
+py::array DecodeBuffer(const uint8_t* data, size_t size, const DecodeConfig& config) {
+  ValidateInputSize(size);
+  MemSource source{
+      data,
+      static_cast<unsigned long>(size),
+  };
+  return DecodeFromSource(&source, SetMemSource, config);
+}
+
+py::array DecodeStdioFile(FILE* file, const DecodeConfig& config) {
+  return DecodeFromSource(file, SetStdioSource, config);
+}
+
 void ProbeJpegHeader(py::bytes data) {
   const BytesView input = GetBytesView(data);
   ValidateInputSize(input.size);
@@ -306,6 +346,36 @@ py::array Imread(
   return DecodeBuffer(input.data(), input.size(), config);
 }
 
+py::array ImreadStdio(
+    py::str path,
+    const std::string& mode,
+    const std::string& dtype,
+    long max_pixels,
+    long max_width,
+    long max_height,
+    const std::string& endianness) {
+  const DecodeConfig config =
+      MakeDecodeConfig(mode, dtype, max_pixels, max_width, max_height, endianness);
+  const std::string file_path = path;
+  FILE* file = nullptr;
+  try {
+    py::gil_scoped_release release;
+    file = OpenFile(file_path);
+  } catch (const FileReadError& exc) {
+    PyErr_SetString(PyExc_FileNotFoundError, exc.what());
+    throw py::error_already_set();
+  }
+
+  try {
+    py::array output = DecodeStdioFile(file, config);
+    std::fclose(file);
+    return output;
+  } catch (...) {
+    std::fclose(file);
+    throw;
+  }
+}
+
 py::object Info(py::bytes data) {
   ProbeJpegHeader(data);
   throw std::runtime_error("jpegli info output is not implemented");
@@ -328,6 +398,17 @@ void BindDecode(py::module_& m) {
   m.def(
       "imread",
       &Imread,
+      py::arg("path"),
+      py::kw_only(),
+      py::arg("mode"),
+      py::arg("dtype"),
+      py::arg("max_pixels"),
+      py::arg("max_width"),
+      py::arg("max_height"),
+      py::arg("endianness"));
+  m.def(
+      "imread_stdio",
+      &ImreadStdio,
       py::arg("path"),
       py::kw_only(),
       py::arg("mode"),

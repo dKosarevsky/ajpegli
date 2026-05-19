@@ -121,3 +121,22 @@ The mixed vendored corpus tells the same story as the one-file smoke result:
 OpenCV is still faster in every measured mode. `ajpegli` threaded BGR is roughly
 at Pillow parity on this corpus, but that is not enough for a project-level
 performance claim.
+
+## Native Source Path Check
+
+This run compares the public `ajpegli.imread()` path against an internal
+benchmark-only `ajpegli-stdio` codec. The public path reads the whole file into
+a native buffer and uses `jpegli_mem_src`; the stdio path opens the file with
+`FILE*` and uses `jpegli_stdio_src`.
+
+| Dataset | Codec | Sequential img/s | Sequential MPix/s | p50 ms | p95 ms | Threaded img/s | Threaded MPix/s |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| flower_cropped | ajpegli | 216.2 | 233.9 | 4.64 | 4.77 | 803.5 | 869.1 |
+| flower_cropped | ajpegli-stdio | 215.7 | 233.3 | 4.64 | 4.78 | 821.9 | 889.0 |
+| vendored mixed | ajpegli | 86.2 | 55.7 | 14.41 | 26.63 | 330.4 | 213.5 |
+| vendored mixed | ajpegli-stdio | 86.3 | 55.8 | 14.55 | 25.44 | 330.9 | 213.8 |
+
+`jpegli_stdio_src` is effectively at parity with the current path in these
+smoke runs. There is no measured reason yet to change the public default away
+from `jpegli_mem_src`; keep `ajpegli-stdio` as an investigation tool for broader
+datasets.

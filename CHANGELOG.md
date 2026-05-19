@@ -11,6 +11,8 @@ commit is part of each release note because jpegli itself is pinned by commit.
   `PROJECT_VERSION`, and the native extension version.
 - Added explicit `--thread-workers` benchmark CLI naming while keeping
   `--workers` as a compatibility alias.
+- Added an internal `ajpegli-stdio` benchmark codec for comparing
+  `jpegli_stdio_src` with the public `jpegli_mem_src` path.
 
 Vendored jpegli commit: `7cdf212790241868c77dca777dbee14e98128cba`.
 

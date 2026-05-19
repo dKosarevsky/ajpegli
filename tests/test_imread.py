@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -17,6 +18,22 @@ def test_imread_returns_numpy_array_from_path() -> None:
     assert isinstance(image, np.ndarray)
     assert image.dtype == np.uint8
     assert image.shape == (1, 1, 3)
+
+
+def test_internal_stdio_imread_matches_default_path_reader() -> None:
+    native = importlib.import_module("ajpegli._ajpegli")
+    default = ajpegli.imread(COLOR_JPEG, mode="RGB")
+    stdio = native.imread_stdio(
+        str(COLOR_JPEG),
+        mode="RGB",
+        dtype="uint8",
+        max_pixels=256_000_000,
+        max_width=65_535,
+        max_height=65_535,
+        endianness="native",
+    )
+
+    np.testing.assert_array_equal(stdio, default)
 
 
 def test_imread_supports_grayscale_mode() -> None:
