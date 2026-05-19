@@ -6,9 +6,9 @@ decode path releases the GIL, but DataLoader throughput still depends on
 storage, process startup, batch size, and image sizes. Measure it on the target
 machine before making speed claims.
 
-Initial smoke numbers are published in
-[DataLoader Results](dataloader-results.md). They use one vendored JPEG and are
-only a regression baseline.
+Smoke and RAM-backed matrix numbers are published in
+[DataLoader Results](dataloader-results.md). They are regression baselines, not
+claims about real training throughput.
 
 ## Dataset Pattern
 
@@ -82,6 +82,25 @@ uv run python benchmarks/bench_imread.py path/to/medium/*.jpg \
 
 Use `--multiprocessing-context spawn` when checking Windows/macOS-like startup
 behavior on Unix systems.
+
+For RAM-backed comparisons, keep `--source bytes` and run the full worker /
+batch matrix:
+
+```bash
+for batch_size in 32 64 128; do
+  for workers in 0 2 4 8 16; do
+    uv run python benchmarks/bench_imread.py path/to/mixed/*.jpg \
+      --mode RGB \
+      --source bytes \
+      --iterations 2000 \
+      --thread-workers 8 \
+      --dataloader-workers "$workers" \
+      --codecs ajpegli \
+      --include-dataloader \
+      --batch-size "$batch_size"
+  done
+done
+```
 
 ## Report Fields
 

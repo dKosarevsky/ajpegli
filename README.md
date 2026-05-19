@@ -75,6 +75,24 @@ The first decode slice supports `uint8` RGB, BGR, and grayscale output. File
 I/O and jpegli decode work release the GIL so threaded callers and DataLoader
 workers do not serialize on Python while the native codec is running.
 
+## RAM / bytes decode
+
+Use `imdecode()` when the benchmark or input pipeline has already loaded JPEG
+bytes into memory:
+
+```python
+from pathlib import Path
+
+import ajpegli
+
+data = Path("image.jpg").read_bytes()
+image = ajpegli.imdecode(data, mode="RGB")
+```
+
+`imdecode()` is the direct comparison point for `cv2.imdecode()`. It accepts
+`bytes`, `bytearray`, `memoryview`, and contiguous NumPy `uint8` buffers without
+making a Python-side copy before entering the native decoder.
+
 NumPy is the only runtime dependency. OpenCV, Pillow, and PyTorch are optional
 benchmark tools and are not required by `pip install ajpegli`.
 
@@ -110,9 +128,10 @@ Use `--thread-workers` for threaded reader throughput and
 `--dataloader-workers` for PyTorch `DataLoader` worker count. Use
 `--source bytes` when benchmarking preloaded JPEG bytes from RAM instead of
 path reads.
-The checked-in smoke reports are intentionally narrow; broader dataset reports
-are still required before making project-level speed claims against OpenCV or
-Pillow.
+The checked-in reports are intentionally honest: on the current vendored smoke
+corpora, OpenCV and Pillow are still faster than `ajpegli`. Treat them as
+regression baselines and do not make project-level speed claims without broader
+dataset-specific measurements.
 
 For local comparison runs, install only what you want to measure in that
 environment:

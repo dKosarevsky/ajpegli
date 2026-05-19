@@ -123,3 +123,54 @@ item calls `ajpegli.imdecode(data, mode="RGB")`.
 For this RAM-backed smoke workload, extra DataLoader workers do not improve
 throughput. The fastest measurements are `num_workers=0` and `num_workers=2`,
 while higher worker counts are slower from multiprocessing overhead.
+
+## RAM Matrix, Mixed Size Corpus
+
+This run uses a 9-file vendored corpus split across small, medium, and large
+JPEGs. Every sample is preloaded into memory before timing starts, so each
+`Dataset.__getitem__` calls `ajpegli.imdecode(data, mode="RGB")`.
+
+- Date: 2026-05-19
+- ajpegli: 0.1.5
+- Python: 3.13.7
+- NumPy: 2.4.5
+- PyTorch: 2.12.0
+- Images: 9
+- Mode: RGB
+- Source: bytes
+- Iterations: 512
+- Warmup: 3
+
+Images/s:
+
+| Batch size | workers=0 | workers=2 | workers=4 | workers=8 | workers=16 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 32 | 91.0 | 95.1 | 83.0 | 40.6 | 29.3 |
+| 64 | 89.9 | 101.9 | 82.5 | 48.9 | 32.6 |
+| 128 | 90.8 | 93.6 | 67.6 | 51.0 | 32.6 |
+
+MPix/s:
+
+| Batch size | workers=0 | workers=2 | workers=4 | workers=8 | workers=16 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 32 | 311.9 | 326.0 | 284.6 | 139.2 | 100.3 |
+| 64 | 308.2 | 349.3 | 282.8 | 167.8 | 111.7 |
+| 128 | 311.3 | 320.8 | 231.8 | 174.8 | 111.9 |
+
+`num_workers=2` with `batch_size=64` is the best point in this smoke run, but
+the margin over `num_workers=0` is small. `num_workers=8` and `16` are worse;
+PyTorch also warned that 16 workers exceeds the suggested worker count for this
+machine. This supports a conservative recommendation: tune worker count on the
+target training host instead of assuming more workers help.
+
+Context sanity, `batch_size=64`, `iterations=256`:
+
+| Multiprocessing context | workers=2 img/s | workers=4 img/s |
+| --- | ---: | ---: |
+| fork | 133.5 | 165.3 |
+| spawn | 77.0 | 60.5 |
+
+These rows are a sanity check, not a cross-platform claim. They show that start
+method can dominate RAM-backed DataLoader throughput; Linux `fork` and
+macOS/Windows `spawn` should be reported separately in any release-grade
+benchmark.
