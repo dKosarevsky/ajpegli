@@ -214,6 +214,59 @@ The actionable conclusion is that RAM preload alone does not make `ajpegli`
 competitive with OpenCV/Pillow on these corpora. Future speed work should focus
 on the native decode/output path, not disk I/O.
 
+## CID22 Validation Set, Bytes Source
+
+This run uses the Cloudinary Image Dataset '22 validation set as an external
+manual benchmark. The full validation archive contains multiple codecs and file
+formats; this decoder run extracts only the `mozjpeg/*.jpg` files and benchmarks
+preloaded JPEG bytes.
+
+- Date: 2026-05-19
+- ajpegli: 0.1.5
+- Python: 3.13.7
+- NumPy: 2.4.5
+- OpenCV: 4.13.0
+- Pillow: 12.2.0
+- Dataset: CID22 validation set
+- Dataset URL: <https://cloudinary.com/labs/cid22>
+- Dataset license: CC BY-SA 4.0
+- JPEG files: 536
+- Source: bytes
+- Iterations: 1000
+- Warmup: 3
+- Threaded workers: 8
+
+Command template:
+
+```bash
+uv run python benchmarks/bench_imread.py data/cid22-validation \
+  --dataset cid22-validation \
+  --mode RGB \
+  --source bytes \
+  --iterations 1000 \
+  --warmup 3 \
+  --thread-workers 8 \
+  --codecs ajpegli,cv2,pillow
+```
+
+| Mode | Codec | Sequential img/s | Sequential MPix/s | p50 ms | p95 ms | Threaded img/s | Threaded MPix/s |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| RGB | ajpegli | 582.8 | 152.8 | 1.270 | 4.030 | 3913.8 | 1026.0 |
+| RGB | cv2 | 876.9 | 229.9 | 0.714 | 3.488 | 5082.9 | 1332.5 |
+| RGB | pillow | 748.5 | 196.2 | 0.900 | 3.700 | 3053.6 | 800.5 |
+| BGR | ajpegli | 577.0 | 151.2 | 1.271 | 4.056 | 4002.0 | 1049.1 |
+| BGR | cv2 | 882.1 | 231.2 | 0.710 | 3.485 | 6096.9 | 1598.3 |
+| BGR | pillow | 759.8 | 199.2 | 0.886 | 3.616 | 3593.4 | 942.0 |
+| L | ajpegli | 668.2 | 175.2 | 1.060 | 3.825 | 4383.1 | 1149.0 |
+| L | cv2 | 1016.6 | 266.5 | 0.573 | 3.114 | 7004.4 | 1836.2 |
+| L | pillow | 794.1 | 208.2 | 0.830 | 3.609 | 3923.0 | 1028.4 |
+
+CID22 confirms the vendored-corpus result: OpenCV is faster than `ajpegli` in
+every measured mode. Pillow is faster sequentially, while `ajpegli` is faster
+than Pillow in the 8-thread RGB/BGR runs on this machine. That is still not a
+project-level speed claim; it is a dataset-specific baseline for future hot-path
+work.
+
 ## Native Source Path Check
 
 This run compares the public `ajpegli.imread()` path against an internal
