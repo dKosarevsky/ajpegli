@@ -2,6 +2,8 @@
 
 [![PyPI package](https://img.shields.io/pypi/v/ajpegli?label=pypi%20package)](https://pypi.org/project/ajpegli/)
 [![CI](https://img.shields.io/github/actions/workflow/status/dKosarevsky/ajpegli/ci.yml?branch=main&label=CI&logo=github)](https://github.com/dKosarevsky/ajpegli/actions/workflows/ci.yml)
+[![ruff](https://img.shields.io/github/actions/workflow/status/dKosarevsky/ajpegli/ruff.yml?branch=main&label=ruff)](https://github.com/dKosarevsky/ajpegli/actions/workflows/ruff.yml)
+[![ty](https://img.shields.io/github/actions/workflow/status/dKosarevsky/ajpegli/ty.yml?branch=main&label=ty)](https://github.com/dKosarevsky/ajpegli/actions/workflows/ty.yml)
 [![PyPI downloads](https://img.shields.io/pypi/dm/ajpegli?label=PyPI%20downloads)](https://pypistats.org/packages/ajpegli)
 ![Coverage](badges/coverage.svg)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
